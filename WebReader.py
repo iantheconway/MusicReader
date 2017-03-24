@@ -9,6 +9,7 @@ import random
 import datetime
 import numpy as np
 import time
+import re
 
 # Use Flask web server
 
@@ -433,7 +434,7 @@ def note_reader():
     #music_gen.compose_music("test.ly", dif, 4, "C")
     # TODO: get directory name from os
     fname = "SomeRandomNotes" + time_stamp + ".ly"
-    image_folder = "/Users/ianconway/Desktop/Projects/MusicReader/images"
+    image_folder = "./images"
     #TODO: Change to new version
     if poly == "POLY":
         poly = True
@@ -461,12 +462,32 @@ def note_reader():
         subprocess.call("python "
                         "midi2ly.py "
                         "best.midi", shell=True)
+        # Clean chords out if the mode is set to monophonic
+        if poly == False:
+            with open("best-midi.ly","r") as f:
+                lily_lines = f.readlines()
+            clear = False
+            lines = []
+            for line in lily_lines:
+                if line.rstrip() == "trackBchannelBvoiceB = \\relative c {":
+                    clear = True
+                    continue
+                if line.rstrip() == "trackBchannelBvoiceC = \\relative c {":
+                    clear = True
+                    continue
+                if not clear:
+                    lines.append(line)
+                else:
+                    if line.rstrip() == "}":
+                        clear = False
+
+            with open("best-midi.ly", "w") as f:
+                f.write(''.join([line for line in lines]))
         p = subprocess.Popen([
             "./LilyPond.app/"
             "Contents/Resources/bin/lilypond",
             "--png",
             ("--output=./images/test" + time_stamp),
-            "/Users/ianconway/Desktop/Projects/MusicReader/" +
             "best-midi.ly"
         ],
             stdout=PIPE,
@@ -487,7 +508,6 @@ def note_reader():
         "Contents/Resources/bin/lilypond",
         "--png",
         ("--output=./images/test" + time_stamp),
-        "/Users/ianconway/Desktop/Projects/MusicReader/" +
         fname
         ],
         stdout=PIPE,

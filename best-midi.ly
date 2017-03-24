@@ -24,34 +24,26 @@ trackA = <<
 
 trackBchannelB = \relative c {
   \voiceOne
-  r16 <g' b d, >4 <d fis a >4*5 d''4 g fis8 g fis e d e a g e g 
-  e d e d e c a4. f8 gis e' <a, c,, e g >16 gis a8*5 g8 fis4 e8 
-  d4 a' d8 fis d4 fis8 a b a fis16 gis a8 cis, d cis b fis e cis' 
-  e, a4 b8 cis d cis b d fis e d b a4 b8 cis e d e a, e' cis d 
-  cis a4 cis a e e'8 a, b4 d8 a <d,, fis a >2 fis'4 b8 cis fis, 
-  b a' a,4 cis8 a <fis fis, a cis, >4. <a b, dis, fis >16 <fis, a cis, > 
-  <b dis, fis >8*25 b'8 a cis b4. e,4 a cis8 d e cis r8 e, cis'4 
-  a8 b a b a gis a4 b a cis a e'8 d cis4 a2 b4 a cis8 d e fis4. 
-  cis4 b8 a2 cis8 d4 a gis8 a16 b a2 e'8 a,4. cis8 b a b d fis 
-  e4 fis8*5 e8 fis4 e cis8 e g fis16*5 e8. cis8 a b cis e 
+  r16 e''4 ais, b16 cis b8 a4 fis a d2 fis8 a d, cis e g4. fis8 
+  e fis e cis e cis d b e d g a4 g8 gis16 
+  | % 6
+  g fis8 e fis e4 fis8 e b a fis gis4 a2 b8 d b4 d4. e8 d cis 
+  d fis d4 b b'8 a g fis e4 fis g8 d e a, g fis a a' a,16 gis' 
+  a,8 g4 d' b16*5 a8. b8 a fis'4. e8 d4 fis e <g,, b d, > a2. d4 
+  c'8 b d,4 g d'2. e8 fis g4 gis8 fis16 e16*5 cis8 d <a, cis, e >16 
+  <c, e g > <a' cis, e >8*7 fis''8 g fis d4 b8 a d e d a d a fis' 
+  g g, e'4 cis8 b cis4. d8 f16 fis e8 d cis d e d16*11 fis16 e8 
+  cis d8. e16 g4 e a1 g8 e cis4 d2 fis4 d2 a'4 gis8 fis e cis fis4 
+  cis8 b4 e8 g, a4 d8 e g cis, e d4 fis d8 cis a b d e g a g16 
+  a fis8 a g e d4 b8 
 }
 
-trackBchannelBvoiceB = \relative c {
-  \voiceTwo
-  r16 d''2. r4 a8 d e4 <g,, b d, >2. <a c, e >4*5 <c, e g >1 <a' cis, e >4 
-  r16 <a cis, e >16*11 <d, fis a >1*2 <e gis b >2. <a cis, e >8*23 
-  <b d, fis >8*5 <a cis, e >4*7 r16 a''8. a,4 <b, d, fis >2. <fis a cis, >16*9 
-  <b d, fis >16 r16*7 b'8 
-  | % 17
-  a16 gis8 b a4. cis8 e cis b4 a16 gis b8 a4 cis8 b a b a4 b8 
-  a b a <e, gis b >1 <a cis, e > <d, fis a >1. <e gis b >1 <a cis, e >4*5 
-  <d, fis a >2*5 <fis a cis, >1 <d fis a >2 <a' cis, e > <d, fis a >1 
-  <a' cis, e >4*7 
-}
+
 
 trackB = <<
   \context Voice = voiceA \trackBchannelB
   \context Voice = voiceB \trackBchannelBvoiceB
+  \context Voice = voiceC \trackBchannelBvoiceC
 >>
 
 
