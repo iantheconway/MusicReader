@@ -8,6 +8,7 @@ from subprocess import Popen, PIPE
 import random
 import datetime
 import numpy as np
+import time
 
 # Use Flask web server
 
@@ -21,7 +22,7 @@ def softmax(x):
     """Compute softmax values for each sets of scores in x."""
     return np.exp(x) / np.sum(np.exp(x), axis=0)
 
-# Class which represents a measure of music. Each measunre has a chord,
+# Class which represents a measure of music. Each measure has a chord,
 # a set of notes, and a counter which represents how much of the measure
 # has passed already during generation, so we don't try to fill it with
 # too many notes. For the sake of this program, every measure will have
@@ -408,10 +409,6 @@ def index():
     return 'This is the homepage!'
 
 
-@app.route('/test')
-def test2():
-    return 'This is a test'
-
 
 @app.route('/upload/<filename>')
 def send_image(filename):
@@ -421,46 +418,76 @@ def send_image(filename):
 
 @app.route('/notereader', methods=['GET', 'POST'])
 def note_reader():
-    print("test")
+    time_stamp = str(time.time())
     dif = Difficulty("EASY")
     key = "C"
     poly = False
     if request.method == "POST":
-        print("test2")
         dif = Difficulty(request.form['difficulty'])
         key = request.form['key']
         poly = request.form['poly']
-        print request.form['difficulty']
+        #print request.form['difficulty']
     else:
         return render_template("main2.html", image_name='test.png')
     music_gen = MusicGenerator()
-    print("test3")
     #music_gen.compose_music("test.ly", dif, 4, "C")
     # TODO: get directory name from os
-    fname = "SomeRandomNotes.ly"
-    image_folder = "/Applications/XAMPP/xamppfiles/htdocs/WebReader/images/"
+    fname = "SomeRandomNotes" + time_stamp + ".ly"
+    image_folder = "/Users/ianconway/Desktop/Projects/MusicReader/images"
     #TODO: Change to new version
     if poly == "POLY":
         poly = True
     else:
         poly = False
-    print("test4")
     if request.form['difficulty'] == "MED2":
         music_gen.create_ly_old(fname,"")
-        print("test4.5")
+    elif request.form['difficulty'] == "DNN":
+        command = ("python "
+            "./AI_Composer/rnn_sample.py "
+            "--config_file "
+            "./AI_Composer/models/0322_1020/nl_2_hs_200_mc_0p5_dp_0p5_idp_0p8_tb_128.config")
+        subprocess.call(command, shell=True)
+
+        p = subprocess.Popen([
+            "./LilyPond.app/"
+            "Contents/Resources/bin/midi2ly",
+            "./best.midi"
+        ],
+            stdout=PIPE,
+            stderr=PIPE
+        )
+
+        p.wait()
+        subprocess.call("python "
+                        "midi2ly.py "
+                        "best.midi", shell=True)
+        p = subprocess.Popen([
+            "./LilyPond.app/"
+            "Contents/Resources/bin/lilypond",
+            "--png",
+            ("--output=./images/test" + time_stamp),
+            "/Users/ianconway/Desktop/Projects/MusicReader/" +
+            "best-midi.ly"
+        ],
+            stdout=PIPE,
+            stderr=PIPE
+        )
+
+        p.wait()
+        return render_template("main2.html", image_name=('test' + time_stamp + '.png'))
     else:
-        print("test4.6")
         # Use try statement in case user tampers with the form values.
         try:
             music_gen.compose_music(fname, dif, 16, key, poly)
         except:
+            print("exception triggered")
             music_gen.compose_music(fname, Difficulty("EASY"), 16, "C", False)
     p = subprocess.Popen([
         "./LilyPond.app/"
         "Contents/Resources/bin/lilypond",
         "--png",
-        "--output=./images/test",
-        "/Applications/XAMPP/xamppfiles/htdocs/WebReader/" +
+        ("--output=./images/test" + time_stamp),
+        "/Users/ianconway/Desktop/Projects/MusicReader/" +
         fname
         ],
         stdout=PIPE,
@@ -468,8 +495,7 @@ def note_reader():
     )
 
     p.wait()
-    print("test5")
-    return render_template("main2.html", image_name='test.png')
+    return render_template("main2.html", image_name=('test' + time_stamp + '.png'))
 
 '''
 @app.after_request

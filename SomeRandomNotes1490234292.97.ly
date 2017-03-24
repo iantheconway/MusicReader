@@ -1,0 +1,3 @@
+\absolute {
+f'16 e'16 b'8 b'16 e'16 r16 e'16 f'2 e4 a16 e16 a16 e16 r8 d''4 b'16 d''16 f'4 c''4 f'16 a'16 r4 d''8 f16 g16 f4 b'2 r8 a'16 r16 r16 r16 b'8 f'4 g'16 f'16 d'8 r8 g'4 e'4 b'4 g'8 g'8 g'8 r8 b'16 b'16 c''4 e'16 f'16 b'4 d'16 e'16 r8 f'4 r16 f'16 b'8 a'8 g'16 b'16 d'2 r8 g'8 b'8 r8 g'2 g'16 d'16 f'4 r16 r16 d'16 d'16 f'2 r4 a'8 a'16 r16 a'8 a'8 c''8 e16 e16 b'16 r16 r8 c''8 r16 d'16 a'8 g'2 d'8 g'16 c''16 g'2 a'8 c''4 r16 r16 r1 r2 r16 b'16 g'4 b'8 
+}

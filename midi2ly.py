@@ -1,10 +1,11 @@
-#!/usr/bin/arch -i386 /usr/bin/python2.7
+
+#!@TARGET_PYTHON@
 #
 # midi2ly.py -- LilyPond midi import script
 
 # This file is part of LilyPond, the GNU music typesetter.
 #
-# Copyright (C) 1998--2012  Han-Wen Nienhuys <hanwen@xs4all.nl>
+# Copyright (C) 1998--2015  Han-Wen Nienhuys <hanwen@xs4all.nl>
 #                           Jan Nieuwenhuizen <janneke@gnu.org>
 #
 # LilyPond is free software: you can redistribute it and/or modify
@@ -29,29 +30,9 @@ import os
 import sys
 
 """
-
-This generic code used for all python scripts.
-
-The quotes are to ensure that the source .py file can still be
-run as a python script, but does not include any sys.path handling.
-Otherwise, the lilypond-book calls inside the build
-might modify installed .pyc files.
-
+@relocate-preamble@
 """
 
-for d in ['/usr/share/lilypond/2.18.2',
-	  '/usr/lib/lilypond/2.18.2']:
-    sys.path.insert (0, os.path.join (d, 'python'))
-
-# dynamic relocation, for GUB binaries.
-bindir = os.path.abspath (os.path.dirname (sys.argv[0]))
-for p in ['share', 'lib']:
-    datadir = os.path.abspath (bindir + '/../%s/lilypond/current/python/' % p)
-    sys.path.insert (0, datadir)
-"""
-"""
-
-import midi
 import lilylib as ly
 global _;_=ly._
 
@@ -78,7 +59,7 @@ bar_max = 0
 
 
 program_name = sys.argv[0]
-program_version = '2.18.2'
+program_version = '@TOPLEVEL_VERSION@'
 
 authors = ('Jan Nieuwenhuizen <janneke@gnu.org>',
            'Han-Wen Nienhuys <hanwen@xs4all.nl>')
@@ -92,12 +73,10 @@ def warranty ():
     identify ()
     ly.encoded_write (sys.stdout, '''
 %s
-
   %s
-
 %s
 %s
-''' % ( _ ('Copyright (c) %s by') % '1998--2012',
+''' % ( _ ('Copyright (c) %s by') % '1998--2015',
         '\n  '.join (authors),
         _ ('Distributed under terms of the GNU General Public License.'),
         _ ('It comes with NO WARRANTY.')))
@@ -287,10 +266,12 @@ class Note:
         elif commas < 0:
             s = s + "," * -commas
 
-        if ((dump_dur
-             and self.duration.compare (reference_note.duration))
-            or global_options.explicit_durations):
+        if (dump_dur
+            and (self.duration.compare (reference_note.duration)
+                 or global_options.explicit_durations)):
             s = s + self.duration.dump ()
+
+        # Chords need to handle their reference duration themselves
 
         reference_note = self
 
@@ -400,12 +381,21 @@ class Text:
         'INSTRUMENT_NAME',
         'LYRIC',
         'MARKER',
-        'CUE_POINT',)
+        'CUE_POINT',
+        'PROGRAM_NAME',
+        'DEVICE_NAME', )
+
+    @staticmethod
+    def _text_only(chr):
+        if ((' ' <= chr <= '~') or chr in ['\n','\r']):
+            return chr
+        else: 
+            return '~'
 
     def __init__ (self, type, text):
         self.clocks = 0
         self.type = type
-        self.text = text
+        self.text =''.join(map(self._text_only, text))
 
     def dump (self):
         # urg, we should be sure that we're in a lyrics staff
@@ -673,13 +663,17 @@ def dump_chord (ch):
         s = s + dump (notes[0])
     elif len (notes) > 1:
         global reference_note
+        reference_dur = reference_note.duration
         s = s + '<'
         s = s + notes[0].dump (dump_dur=False)
         r = reference_note
         for i in notes[1:]:
             s = s + i.dump (dump_dur=False)
         s = s + '>'
-        s = s + notes[0].duration.dump () + ' '
+        if (r.duration.compare (reference_dur)
+            or global_options.explicit_durations):
+            s = s + r.duration.dump ()
+        s = s + ' '
         reference_note = r
     return s
 
@@ -942,6 +936,9 @@ class Staff:
         return dump_track (self.voices, i)
 
 def convert_midi (in_file, out_file):
+    global midi
+    import pymidi as midi
+
     global clocks_per_1, clocks_per_4, key
     global start_quant_clocks
     global duration_quant_clocks
@@ -1108,7 +1105,7 @@ def get_option_parser ():
            default=[])
     p.add_option ('-V', '--verbose', help=_ ('be verbose'),
            action='store_true')
-    p.version = 'midi2ly (LilyPond) 2.18.2'
+    p.version = 'midi2ly (LilyPond) @TOPLEVEL_VERSION@'
     p.add_option ('--version',
                  action='version',
                  help=_ ('show version number and exit'))
