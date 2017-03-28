@@ -1,5 +1,16 @@
 # This program runs a small web server which will create a display a piece of sheet
 # music of varying complexity so that a musician can practice sight reading.
+# There are several modes of music generation that are supported.
+# The Easy, Medium and Hard modes are rule based with an element of randomness. They
+# support different keys and the option to be polyphonic. The Old Version setting is
+# another rule based algorithm that I came up with, but it does not support different keys
+# or polyphonic mode. The neural network setting uses this module: https://github.com/llSourcell/AI_Composer
+# to run an LSTM neural network trained on British folk songs to generate a midi file which is converted to
+# sheet music.
+
+# This software is built using GNU Lilypond, and as such is provided under the GNU General Public License
+# While the use of the AI_Composer module is supported by this software, it is a separate package and not
+# necessarily covered by the GNU license.
 
 
 from flask import Flask, render_template, send_from_directory, send_file, request, url_for, redirect
@@ -119,6 +130,7 @@ class Difficulty:
             # self.sycopations.append(.25) # Note sure about this
             self.rest_chance = 4
 
+# Class representing the composition, which has a difficulty, a key, and an array of measures.
 
 class Composition:
     def __init__(self, difficulty, key):
@@ -126,6 +138,7 @@ class Composition:
         self.key = key
         self.measures = []
 
+# Class representing the Web Reader
 
 class WebReader:
     def __init__(self):
@@ -201,7 +214,6 @@ class MusicGenerator:
 
     # Function which creates a composition.
     def compose_music(self, fname, difficulty, num_bars, key, multi, debug=False):
-        # TODO: Create Key class and make this section more object oriented.
         if key == "C":
             #print self.guitar_notes
             pass
@@ -262,7 +274,6 @@ class MusicGenerator:
                         carry_over = note.rhythm_value
 
                     if debug:
-                        print "!!!"
                         print note.rhythm_value.value
                         print note.pitch
 
@@ -274,18 +285,6 @@ class MusicGenerator:
                         note_indicies = range(7)
                         note_index = np.random.choice(note_indicies,
                                                       p=softmax(chord.weights))
-                        # Verbose Debug stuff
-                        '''
-                        print "Chord: " + str(chord.degree)
-                        print "Chord root: " + self.guitar_notes[chord.degree + 4]
-                        print "Chord scale degree " + str(note_index + 1)
-                        print "guitar note index: "
-                        print (4 + chord.degree + note_index) % len(self.guitar_notes)
-                        print "guitar note index: "
-                        print self.guitar_notes[
-                            (4 + chord.degree + note_index)
-                            % len(self.guitar_notes)]
-                        '''
                         note.pitch = self.guitar_notes[
                             (4 + chord.degree + note_index)
                             % len(self.guitar_notes)]
@@ -295,10 +294,6 @@ class MusicGenerator:
                     else:
                         note.rest = True
                     measure.notes.append(note)
-            '''
-            for note in measure.notes:
-                print note.rhythm_value.value
-                print note.pitch'''
 
             composition.measures.append(measure)
 
@@ -525,5 +520,9 @@ def add_header(response):
 '''
 
 if __name__ == "__main__":
+    #TODO: take AI_Composer dicertory from config file.
+    with open("config.ini") as f:
+        for line in [x.rstrip() for x in f.readlines()]:
+            pass
     app.run(debug=True,)
     #app.run(threaded=True )
