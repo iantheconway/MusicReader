@@ -1,16 +1,16 @@
 # 
 Overview
 ============
-An open source tool for practicing sheet music reading.
+An open source tool which generates sheet music for the purpose of practicing sight reading.
 
 Dependencies
 ============
 Currently, this project only supports Mac OS, however linux and perhaps Windows will be supported soon.
-Python 2.7
-Flask
-Tensorflow
-GNU Lilypond (Mac App is included for convenience)
-Numpy
+* Python 2.7
+* Flask
+* Tensorflow
+* GNU Lilypond (Mac App is included for convenience)
+* Numpy
 
 AI_Composer for Neural Network mode: https://github.com/llSourcell/AI_Composer
 
