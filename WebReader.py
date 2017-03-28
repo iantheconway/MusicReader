@@ -448,7 +448,7 @@ def note_reader():
             "--config_file "
             "./AI_Composer/models/0322_1020/nl_2_hs_200_mc_0p5_dp_0p5_idp_0p8_tb_128.config")
         subprocess.call(command, shell=True)
-
+        #redundent?
         p = subprocess.Popen([
             "./LilyPond.app/"
             "Contents/Resources/bin/midi2ly",
@@ -487,7 +487,7 @@ def note_reader():
             "./LilyPond.app/"
             "Contents/Resources/bin/lilypond",
             "--png",
-            ("--output=./images/test" + time_stamp),
+            ("--output=./images/song" + time_stamp),
             "best-midi.ly"
         ],
             stdout=PIPE,
@@ -495,7 +495,7 @@ def note_reader():
         )
 
         p.wait()
-        return render_template("main2.html", image_name=('test' + time_stamp + '.png'))
+        return render_template("main2.html", image_name=('song' + time_stamp + '.png'))
     else:
         # Use try statement in case user tampers with the form values.
         try:
@@ -507,7 +507,7 @@ def note_reader():
         "./LilyPond.app/"
         "Contents/Resources/bin/lilypond",
         "--png",
-        ("--output=./images/test" + time_stamp),
+        ("--output=./images/song" + time_stamp),
         fname
         ],
         stdout=PIPE,
@@ -515,7 +515,7 @@ def note_reader():
     )
 
     p.wait()
-    return render_template("main2.html", image_name=('test' + time_stamp + '.png'))
+    return render_template("main2.html", image_name=('song' + time_stamp + '.png'))
 
 '''
 @app.after_request
