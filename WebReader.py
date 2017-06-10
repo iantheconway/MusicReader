@@ -11,16 +11,16 @@
 # This software is built using GNU Lilypond, and as such is provided under the GNU General Public License
 # While the use of the AI_Composer module is supported by this software, it is a separate package and not
 # necessarily covered by the GNU license.
-
-
-from flask import Flask, render_template, send_from_directory, send_file, request, url_for, redirect
+import os
 import subprocess
 from subprocess import Popen, PIPE
 import random
 import datetime
-import numpy as np
 import time
 import re
+
+from flask import Flask, render_template, send_from_directory, send_file, request, url_for, redirect
+import numpy as np
 
 # Use Flask web server
 
@@ -438,10 +438,10 @@ def note_reader():
     if request.form['difficulty'] == "MED2":
         music_gen.create_ly_old(fname,"")
     elif request.form['difficulty'] == "DNN":
-        command = ("python "
-            "./AI_Composer/rnn_sample.py "
-            "--config_file "
-            "./AI_Composer/models/0322_1020/nl_2_hs_200_mc_0p5_dp_0p5_idp_0p8_tb_128.config")
+        command = ("python " +
+            os.path.join(AI_COMPOSER, "rnn_sample.py ") +
+            "--config_file " +
+             os.path.join(AI_COMPOSER, "models","0322_1020", "nl_2_hs_200_mc_0p5_dp_0p5_idp_0p8_tb_128.config"))
         subprocess.call(command, shell=True)
         #redundent?
         p = subprocess.Popen([
@@ -522,7 +522,9 @@ def add_header(response):
 if __name__ == "__main__":
     #TODO: take AI_Composer dicertory from config file.
     with open("config.ini") as f:
-        for line in [x.rstrip() for x in f.readlines()]:
-            pass
+        lines = [x.rstrip() for x in f.readlines()]
+        global AI_COMPOSER
+        AI_COMPOSER = lines[0]
+
     app.run(debug=True,)
     #app.run(threaded=True )
