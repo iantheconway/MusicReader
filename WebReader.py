@@ -34,6 +34,7 @@ def softmax(x):
     """Compute softmax values for each sets of scores in x."""
     return np.exp(x) / np.sum(np.exp(x), axis=0)
 
+
 # Class which represents a measure of music. Each measure has a chord,
 # a set of notes, and a counter which represents how much of the measure
 # has passed already during generation, so we don't try to fill it with
@@ -58,7 +59,7 @@ class Chord:
     def __init__(self):
         self.degree = None
         # Weights for each scale degree
-        self.weights = [1.6,.3,1.5,.6,1.4,.4,.2]
+        self.weights = [1.6, .3, 1.5, .6, 1.4, .4, .2]
 
 
 # Class to represent a musical note, which can either be a pitch or
@@ -72,6 +73,7 @@ class Note:
         self.pitch = None
         self.third = None
 
+
 # Class to represent rhythm value of a note, along with the fraction of
 # a measure; I.E an 8th not would be RhythmValue(8) and RhythmValue
 # eight.fraction would be 0.125. We use the fraction for tallying up
@@ -81,7 +83,8 @@ class Note:
 class RhythmValue:
     def __init__(self, value):
         self.value = value
-        self.fraction = 1.0/value
+        self.fraction = 1.0 / value
+
 
 # Class to represent a difficulty level for a composition. For this
 # program's purpose, the difficulty will be determined by the allowable
@@ -103,7 +106,7 @@ class Difficulty:
             self.min_beat = 8
             self.sycopations = []
             self.sycopations.append(0)
-            #self.sycopations.append(.5)
+            # self.sycopations.append(.5)
             self.rest_chance = 4
         elif self.level == "MEDIUM":
             self.rhythm_values = []
@@ -130,6 +133,7 @@ class Difficulty:
             # self.sycopations.append(.25) # Note sure about this
             self.rest_chance = 4
 
+
 # Class representing the composition, which has a difficulty, a key, and an array of measures.
 
 class Composition:
@@ -137,6 +141,7 @@ class Composition:
         self.difficulty = Difficulty(difficulty)
         self.key = key
         self.measures = []
+
 
 # Class representing the Web Reader
 
@@ -187,7 +192,7 @@ class MusicGenerator:
             '6': [3, 5, 7],
             #   bd = b  d  f
             '7': [4, 6, 8]
-            }
+        }
 
         self.chordname = {
             #    C
@@ -215,21 +220,21 @@ class MusicGenerator:
     # Function which creates a composition.
     def compose_music(self, fname, difficulty, num_bars, key, multi, debug=False):
         if key == "C":
-            #print self.guitar_notes
+            # print self.guitar_notes
             pass
         # Alter the allowable notes
         elif key == "G":
             self.guitar_notes[1] = 'fis'
             self.guitar_notes[8] = 'fis\''
             self.guitar_notes = self.rotate(self.guitar_notes, 2)
-            #print self.guitar_notes
+            # print self.guitar_notes
         elif key == "D":
             self.guitar_notes[1] = 'fis'
             self.guitar_notes[8] = 'fis\''
             self.guitar_notes[5] = 'cis'
             self.guitar_notes[12] = 'cis\''
             self.guitar_notes = self.rotate(self.guitar_notes, -1)
-            #print self.guitar_notes
+            # print self.guitar_notes
         elif key == "A":
             self.guitar_notes[1] = 'fis'
             self.guitar_notes[8] = 'fis\''
@@ -238,14 +243,14 @@ class MusicGenerator:
             self.guitar_notes[2] = 'gis'
             self.guitar_notes[9] = 'gis\''
             self.guitar_notes = self.rotate(self.guitar_notes, 2)
-            #print self.guitar_notes
+            # print self.guitar_notes
         composition = Composition(difficulty, key)
         for i in range(num_bars):
             if debug:
                 print "Bar " + str(i)
             # Pick a scale degree at random and create a Chord object
             # Rooted on that degree.
-            scale_degree = random.randint(1,7)
+            scale_degree = random.randint(1, 7)
             chord = Chord()
             chord.degree = scale_degree
             measure = Measure()
@@ -260,7 +265,7 @@ class MusicGenerator:
                 if carry_over:
                     rhythm_value = carry_over
                     carry_over = False
-                #print "rhythm_value: " + str(rhythm_value.value)
+                # print "rhythm_value: " + str(rhythm_value.value)
                 note = Note(rhythm_value, None)
                 if measure.counter + rhythm_value.fraction <= 1:
                     if debug:
@@ -277,7 +282,7 @@ class MusicGenerator:
                         print note.rhythm_value.value
                         print note.pitch
 
-                    if random.randint(0,difficulty.rest_chance):
+                    if random.randint(0, difficulty.rest_chance):
                         note.rest = True
                         note.rest = False
                         # Decide the pitch of the note
@@ -339,7 +344,6 @@ class MusicGenerator:
             file.write("\n")
             file.write("}")
 
-
     # Old version of music generation algorithm.
     def create_ly_old(self, fname, difficulty):
         # quarter note or eighth note.
@@ -358,19 +362,19 @@ class MusicGenerator:
             for i in range(0, 12):
                 # Choose the scale degree of the chord for this measure.
                 # TODO: half measure chord changes
-                scale_degree = random.randint(1,7)
+                scale_degree = random.randint(1, 7)
                 chord_list.append(self.chordname[str(scale_degree)])
                 chord_tones = self.chords[str(scale_degree)]
-                for j in range (1, 5):
+                for j in range(1, 5):
                     # There is a 1/4 chance we will use a neighboring note.
-                    neighboring_note = random.randint(0,4)
+                    neighboring_note = random.randint(0, 4)
                     # There is a 1/4 chance we will use a 16th note walk up the scale.
-                    walk = random.randint(0,4)
-                    chord_tone_index = random.randint(0,2)
-                    chord_tone_index_2 = random.randint(0,2)
+                    walk = random.randint(0, 4)
+                    chord_tone_index = random.randint(0, 2)
+                    chord_tone_index_2 = random.randint(0, 2)
                     note_index = chord_tones[chord_tone_index]
                     note_index_2 = chord_tones[chord_tone_index_2]
-                    rhythm_index = random.randint(0,(len(rhythm_values) - 1))
+                    rhythm_index = random.randint(0, (len(rhythm_values) - 1))
                     file.write(str(self.guitar_notes[note_index]))
                     file.write(str(rhythm_values[rhythm_index]))
                     file.write(" ")
@@ -405,10 +409,9 @@ def index():
     return 'This is the homepage!'
 
 
-
 @app.route('/upload/<filename>')
 def send_image(filename):
-    #return send_file(filename)
+    # return send_file(filename)
     return send_from_directory("images", filename)
 
 
@@ -422,28 +425,37 @@ def note_reader():
         dif = Difficulty(request.form['difficulty'])
         key = request.form['key']
         poly = request.form['poly']
-        #print request.form['difficulty']
+        n_measures = request.form['n_measures']
+        # Default number of measures to 16 if it cannot be cast to int
+        try:
+            n_measures = abs(int(n_measures))
+            if n_measures > 32:
+                n_measures = 32
+
+        except:
+            n_measures = 16
+
     else:
         return render_template("main2.html", image_name='test.png')
     music_gen = MusicGenerator()
-    #music_gen.compose_music("test.ly", dif, 4, "C")
+    # music_gen.compose_music("test.ly", dif, 4, "C")
     # TODO: get directory name from os
     fname = "SomeRandomNotes" + time_stamp + ".ly"
     image_folder = "./images"
-    #TODO: Change to new version
+    # TODO: Change to new version
     if poly == "POLY":
         poly = True
     else:
         poly = False
     if request.form['difficulty'] == "MED2":
-        music_gen.create_ly_old(fname,"")
+        music_gen.create_ly_old(fname, "")
     elif request.form['difficulty'] == "DNN":
         command = ("python " +
-            os.path.join(AI_COMPOSER, "rnn_sample.py ") +
-            "--config_file " +
-             os.path.join(AI_COMPOSER, "models","0322_1020", "nl_2_hs_200_mc_0p5_dp_0p5_idp_0p8_tb_128.config"))
+                   os.path.join(AI_COMPOSER, "rnn_sample.py ") +
+                   "--config_file " +
+                   os.path.join(AI_COMPOSER, "models", "0322_1020", "nl_2_hs_200_mc_0p5_dp_0p5_idp_0p8_tb_128.config"))
         subprocess.call(command, shell=True)
-        #redundent?
+        # redundent?
         p = subprocess.Popen([
             "./LilyPond.app/"
             "Contents/Resources/bin/midi2ly",
@@ -459,7 +471,7 @@ def note_reader():
                         "best.midi", shell=True)
         # Clean chords out if the mode is set to monophonic
         if poly == False:
-            with open("best-midi.ly","r") as f:
+            with open("best-midi.ly", "r") as f:
                 lily_lines = f.readlines()
             clear = False
             lines = []
@@ -494,23 +506,24 @@ def note_reader():
     else:
         # Use try statement in case user tampers with the form values.
         try:
-            music_gen.compose_music(fname, dif, 16, key, poly)
+            music_gen.compose_music(fname, dif, n_measures, key, poly)
         except:
             print("exception triggered")
-            music_gen.compose_music(fname, Difficulty("EASY"), 16, "C", False)
+            music_gen.compose_music(fname, Difficulty("EASY"), n_measures, "C", False)
     p = subprocess.Popen([
         "./LilyPond.app/"
         "Contents/Resources/bin/lilypond",
         "--png",
         ("--output=./images/song" + time_stamp),
         fname
-        ],
+    ],
         stdout=PIPE,
         stderr=PIPE
     )
 
     p.wait()
     return render_template("main2.html", image_name=('song' + time_stamp + '.png'))
+
 
 '''
 @app.after_request
@@ -520,11 +533,11 @@ def add_header(response):
 '''
 
 if __name__ == "__main__":
-    #TODO: take AI_Composer dicertory from config file.
+    # TODO: take AI_Composer dicertory from config file.
     with open("config.ini") as f:
         lines = [x.rstrip() for x in f.readlines()]
         global AI_COMPOSER
         AI_COMPOSER = lines[0]
 
-    app.run(debug=True,)
-    #app.run(threaded=True )
+    app.run(debug=True, )
+    # app.run(threaded=True )
