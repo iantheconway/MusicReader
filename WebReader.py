@@ -17,7 +17,6 @@ from subprocess import Popen, PIPE
 import random
 import datetime
 import time
-import re
 
 from flask import Flask, render_template, send_from_directory, send_file, request, url_for, redirect
 import numpy as np
@@ -379,7 +378,7 @@ class MusicGenerator:
                     file.write(str(rhythm_values[rhythm_index]))
                     file.write(" ")
                     if rhythm_index == 1:
-                        if (neighboring_note == 1):
+                        if neighboring_note == 1:
                             file.write(str(self.guitar_notes[note_index + 1]))
                             file.write(rhythm_values[rhythm_index])
                         elif walk == 1:
@@ -422,107 +421,184 @@ def note_reader():
     key = "C"
     poly = False
     if request.method == "POST":
-        dif = Difficulty(request.form['difficulty'])
-        key = request.form['key']
-        poly = request.form['poly']
-        n_measures = request.form['n_measures']
-        # Default number of measures to 16 if it cannot be cast to int
-        try:
-            n_measures = abs(int(n_measures))
-            if n_measures > 32:
-                n_measures = 32
+        print "post"
+        print request.form
+        if request.form["submit"] == "rule_based":
+            print "rule based"
+            dif = Difficulty(request.form['difficulty'])
+            key = request.form['key']
+            poly = request.form['poly']
+            n_measures = request.form['n_measures']
+            # Default number of measures to 16 if it cannot be cast to int
+            try:
+                n_measures = abs(int(n_measures))
+                if n_measures > 32:
+                    n_measures = 32
+                print "no crash"
 
-        except:
-            n_measures = 16
+            except:
+                n_measures = 16
+                print "crash"
+
+            music_gen = MusicGenerator()
+            # music_gen.compose_music("test.ly", dif, 4, "C")
+
+            # TODO: get directory name from os
+            fname = "SomeRandomNotes" + time_stamp + ".ly"
+            image_folder = "./images"
+
+            # TODO: Change to new version
+            if poly == "POLY":
+                poly = True
+
+            else:
+                poly = False
+
+            if request.form['difficulty'] == "MED2":
+                music_gen.create_ly_old(fname, "")
+                p = subprocess.Popen([
+                    "./LilyPond.app/"
+                    "Contents/Resources/bin/lilypond",
+                    "--png",
+                    ("--output=./images/song" + time_stamp),
+                    "best-midi.ly"
+                ],
+                    stdout=PIPE,
+                    stderr=PIPE
+                )
+
+                p.wait()
+                print "finished med2"
+                return render_template("main2.html", image_name=('song' + time_stamp + '.png'))
+            else:
+                # Use try statement in case user tampers with the form values.
+                try:
+                    music_gen.compose_music(fname, dif, n_measures, key, poly)
+                except:
+                    print("exception triggered")
+                    music_gen.compose_music(fname, Difficulty("EASY"), n_measures, "C", False)
+
+                p = subprocess.Popen([
+                    "./LilyPond.app/"
+                    "Contents/Resources/bin/lilypond",
+                    "--png",
+                    ("--output=./images/song" + time_stamp),
+                    fname
+                ],
+                    stdout=PIPE,
+                    stderr=PIPE
+                )
+
+                p.wait()
+                print "finished"
+                return render_template("main2.html", image_name=('song' + time_stamp + '.png'))
+
+
+
+        elif request.form["submit"] == "magenta":
+            print "magenta"
+            poly = request.form['poly']
+            out_dir = os.path.join(os.path.curdir, 'midi')
+            mag_path = os.path.join(os.path.curdir, 'models', 'basic_rnn.mag')
+            print mag_path
+            n_steps = 128
+            try:
+                n_steps = int(request.form["n_steps"])
+                if n_steps < 10:
+                    n_steps = 10
+            except:
+                pass
+
+            config = 'basic_rnn'
+            melody = '[60, -2, 60, -2, 67, -2, 67, -2]'
+            # TODO: deal with this in a better way.
+            interpreter = '/Users/ianconway/anaconda/envs/tf_env/bin/python'
+            melody_gen_path = '/Users/ianconway/Desktop/Projects/magenta/magenta/models/melody_rnn/melody_rnn_generate.py'
+
+            cmd = (
+                "{} ".format(interpreter) +
+                "{} ".format(melody_gen_path) +
+                "--config='{}' ".format(config) +
+                "--bundle_file='{}' ".format(mag_path) +
+                "--output_dir='{}' ".format(out_dir) +
+                "--num_outputs={} ".format(1) +
+                "--num_steps={} ".format(n_steps) +
+                "--primer_melody='{}'".format(melody)
+            )
+
+            print cmd
+
+            p = subprocess.Popen([
+                cmd
+            ],
+                stdout=PIPE,
+                stderr=PIPE,
+                shell=True
+            )
+
+            print p.communicate()
+            print p.returncode
+
+            p.wait()
+
+            midi_file = os.listdir("midi")[0]
+
+            midi_file = os.path.join(os.path.curdir, "midi", midi_file)
+
+
+            # p = subprocess.Popen([
+            #     "./LilyPond.app/"
+            #     "Contents/Resources/bin/midi2ly",
+            #     "{}".format(midi_file)
+            # ],
+            #     stdout=PIPE,
+            #     stderr=PIPE
+            # )
+            # p.wait()
+
+            subprocess.call("python "
+                            "midi2ly.py "
+                            "{} -o best-midi.ly".format(midi_file), shell=True)
+            os.remove(midi_file)
+            # Clean chords out if the mode is set to monophonic
+            if poly == False:
+                with open("best-midi.ly", "r") as f:
+                    lily_lines = f.readlines()
+                clear = False
+                lines = []
+                for line in lily_lines:
+                    if line.rstrip() == "trackBchannelBvoiceB = \\relative c {":
+                        clear = True
+                        continue
+                    if line.rstrip() == "trackBchannelBvoiceC = \\relative c {":
+                        clear = True
+                        continue
+                    if not clear:
+                        lines.append(line)
+                    else:
+                        if line.rstrip() == "}":
+                            clear = False
+
+                with open("best-midi.ly", "w") as f:
+                    f.write(''.join([line for line in lines]))
+
+            p = subprocess.Popen([
+                "./LilyPond.app/"
+                "Contents/Resources/bin/lilypond",
+                "--png",
+                ("--output=./images/song" + time_stamp),
+                "best-midi.ly"
+            ],
+                stdout=PIPE,
+                stderr=PIPE
+            )
+
+            p.wait()
+            return render_template("main2.html", image_name=('song' + time_stamp + '.png'))
+
 
     else:
-        return render_template("main2.html", image_name='test.png')
-    music_gen = MusicGenerator()
-    # music_gen.compose_music("test.ly", dif, 4, "C")
-    # TODO: get directory name from os
-    fname = "SomeRandomNotes" + time_stamp + ".ly"
-    image_folder = "./images"
-    # TODO: Change to new version
-    if poly == "POLY":
-        poly = True
-    else:
-        poly = False
-    if request.form['difficulty'] == "MED2":
-        music_gen.create_ly_old(fname, "")
-    elif request.form['difficulty'] == "DNN":
-        command = ("python " +
-                   os.path.join(AI_COMPOSER, "rnn_sample.py ") +
-                   "--config_file " +
-                   os.path.join(AI_COMPOSER, "models", "0322_1020", "nl_2_hs_200_mc_0p5_dp_0p5_idp_0p8_tb_128.config"))
-        subprocess.call(command, shell=True)
-        # redundent?
-        p = subprocess.Popen([
-            "./LilyPond.app/"
-            "Contents/Resources/bin/midi2ly",
-            "./best.midi"
-        ],
-            stdout=PIPE,
-            stderr=PIPE
-        )
-
-        p.wait()
-        subprocess.call("python "
-                        "midi2ly.py "
-                        "best.midi", shell=True)
-        # Clean chords out if the mode is set to monophonic
-        if poly == False:
-            with open("best-midi.ly", "r") as f:
-                lily_lines = f.readlines()
-            clear = False
-            lines = []
-            for line in lily_lines:
-                if line.rstrip() == "trackBchannelBvoiceB = \\relative c {":
-                    clear = True
-                    continue
-                if line.rstrip() == "trackBchannelBvoiceC = \\relative c {":
-                    clear = True
-                    continue
-                if not clear:
-                    lines.append(line)
-                else:
-                    if line.rstrip() == "}":
-                        clear = False
-
-            with open("best-midi.ly", "w") as f:
-                f.write(''.join([line for line in lines]))
-        p = subprocess.Popen([
-            "./LilyPond.app/"
-            "Contents/Resources/bin/lilypond",
-            "--png",
-            ("--output=./images/song" + time_stamp),
-            "best-midi.ly"
-        ],
-            stdout=PIPE,
-            stderr=PIPE
-        )
-
-        p.wait()
-        return render_template("main2.html", image_name=('song' + time_stamp + '.png'))
-    else:
-        # Use try statement in case user tampers with the form values.
-        try:
-            music_gen.compose_music(fname, dif, n_measures, key, poly)
-        except:
-            print("exception triggered")
-            music_gen.compose_music(fname, Difficulty("EASY"), n_measures, "C", False)
-    p = subprocess.Popen([
-        "./LilyPond.app/"
-        "Contents/Resources/bin/lilypond",
-        "--png",
-        ("--output=./images/song" + time_stamp),
-        fname
-    ],
-        stdout=PIPE,
-        stderr=PIPE
-    )
-
-    p.wait()
-    return render_template("main2.html", image_name=('song' + time_stamp + '.png'))
+        return render_template("main2.html")
 
 
 '''
