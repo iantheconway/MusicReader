@@ -26,15 +26,16 @@
     <div class="container">
         <h1>
             <span class="glyphicon glyphicon-equalizer"></span>
-            Generate Random Sheet Music
+            Computer Generated Sheet Music
         </h1>
         <p>
-            This is a site for practicing sight reading sheet music. Click on the button below and a random melody will
-            be generated.
+            This is a site for practicing sight reading sheet music. Click on the button below and a computer generated
+            melody will
+            be created.
         </p>
         <p>
         <form method="post">
-            <label for="difficulty">Mode:</label>
+            <label for="difficulty">Difficulty:</label>
             <select name="difficulty" id="difficulty">
                 <option value="EASY">Easy</option>
                 <option value="MEDIUM">Medium</option>
@@ -56,8 +57,13 @@
             </select>
             <button type="submit" name="submit" value="rule_based">Generate</button>
         </form>
+
         <form method="post">
-            
+            <label for="difficulty">Difficulty:</label>
+            <select name="difficulty" id="difficulty">
+                <option value="EASY">Easy</option>
+                <option value="MEDIUM">Medium</option>
+            </select>
             <label for="number_of_steps">Number of Steps:</label>
             <input type="value" name="n_steps">
             <label for="poly">Polyphony:</label>

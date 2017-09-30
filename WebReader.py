@@ -20,6 +20,7 @@ import time
 
 from flask import Flask, render_template, send_from_directory, send_file, request, url_for, redirect
 import numpy as np
+from magenta.music.melodies_lib import Melody
 
 # Use Flask web server
 
@@ -510,7 +511,14 @@ def note_reader():
                 pass
 
             config = 'basic_rnn'
-            melody = '[60, -2, 60, -2, 67, -2, 67, -2]'
+
+            if request.form['difficulty'] == "EASY":
+                melody = '[60, -2, 60, -2, 67, -2, 67, -2]'
+            elif request.form['difficulty'] == "MEDIUM":
+                melody = '[60, -2, 62, -2, 64, -2, 64, -2]'
+
+            m = Melody()
+            print "m dir: {}".format(dir(m))
             # TODO: deal with this in a better way.
             interpreter = '/Users/ianconway/anaconda/envs/tf_env/bin/python'
             melody_gen_path = '/Users/ianconway/Desktop/Projects/magenta/magenta/models/melody_rnn/melody_rnn_generate.py'
