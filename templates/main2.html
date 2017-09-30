@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>Ian's Random Sheet Music</title>
-  <meta charset="utf-8">
+    <title>Ian's Random Sheet Music</title>
+    <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
@@ -13,58 +13,68 @@
     <link href="{{url_for('static', filename = 'css/bootstrap.min.css') }}" rel="stylesheet">
 
     <!-- Custom CSS: You can use this stylesheet to override any Bootstrap styles and/or apply your own styles -->
-     <link href="{{url_for('static', filename = 'css/custom.css') }}" rel="stylesheet">
+    <link href="{{url_for('static', filename = 'css/custom.css') }}" rel="stylesheet">
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
     <!--[if lt IE 9]>
-        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+    <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
     <![endif]-->
 </head>
 <body>
-	<div class="jumbotron container">
-		<div class="container">
-			<h1>
-				<span class="glyphicon glyphicon-equalizer"></span> 
-				Generate Random Sheet Music
-			</h1>
-			<p>
-				This is a site for practicing sight reading sheet music. Click on the button below and a random melody will be generated.
-			</p>
-			<p>
-				<form method="post">
-  					<label for="difficulty">Mode:</label>
-  					<select name="difficulty" id="difficulty">
-    					<option value="EASY">Easy</option>
-    					<option value="MEDIUM">Medium</option>
-    					<option value="HARD">Hard</option>
-              <option value="MED2">Old Version</option>
-              <option value="DNN">Neural Network</option>
-  					</select> 
+<div class="jumbotron container">
+    <div class="container">
+        <h1>
+            <span class="glyphicon glyphicon-equalizer"></span>
+            Generate Random Sheet Music
+        </h1>
+        <p>
+            This is a site for practicing sight reading sheet music. Click on the button below and a random melody will
+            be generated.
+        </p>
+        <p>
+        <form method="post">
+            <label for="difficulty">Mode:</label>
+            <select name="difficulty" id="difficulty">
+                <option value="EASY">Easy</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HARD">Hard</option>
+            </select>
             <label for="key">Key:</label>
             <select name="key" id="key">
-              <option value="C">C</option>
-              <option value="G">G</option>
-              <option value="D">D</option>
-              <option value="A">A</option>
-            </select> 
-            <label for="number_of_measures">Number of Measures:</label> 
+                <option value="C">C</option>
+                <option value="G">G</option>
+                <option value="D">D</option>
+                <option value="A">A</option>
+            </select>
+            <label for="number_of_measures">Number of Measures:</label>
             <input type="value" name="n_measures">
             <label for="poly">Polyphony:</label>
             <select name="poly" id="poly">
-              <option value="MONO">Monophonic</option>
-              <option value="POLY">Polyphonic</option>
-            </select> 
-  					<button type="submit" name="submit" value="submit">Generate </button>
-</form>
-		</div>
-	</div>
-	<div>
-		<p>
-			<center>
-				<img src="{{url_for('send_image', filename=image_name)}}" align="middle" >
-			</center>
-		</p>
-	</dic>
+                <option value="MONO">Monophonic</option>
+                <option value="POLY">Polyphonic</option>
+            </select>
+            <button type="submit" name="submit" value="rule_based">Generate</button>
+        </form>
+        <form method="post">
+            
+            <label for="number_of_steps">Number of Steps:</label>
+            <input type="value" name="n_steps">
+            <label for="poly">Polyphony:</label>
+            <select name="poly" id="poly">
+                <option value="MONO">Monophonic</option>
+                <option value="POLY">Polyphonic</option>
+            </select>
+            <button type="submit" name="submit" value="magenta">Generate</button>
+        </form>
+    </div>
+</div>
+<div>
+    <p>
+    <center>
+        <img src="{{url_for('send_image', filename=image_name)}}" align="middle">
+    </center>
+    </p>
+    </dic>
 </body>
 </html>
