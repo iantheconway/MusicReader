@@ -4,13 +4,10 @@
 # The Easy, Medium and Hard modes are rule based with an element of randomness. They
 # support different keys and the option to be polyphonic. The Old Version setting is
 # another rule based algorithm that I came up with, but it does not support different keys
-# or polyphonic mode. The neural network setting uses this module: https://github.com/llSourcell/AI_Composer
-# to run an LSTM neural network trained on British folk songs to generate a midi file which is converted to
-# sheet music.
+# or polyphonic mode.
 
 # This software is built using GNU Lilypond, and as such is provided under the GNU General Public License
-# While the use of the AI_Composer module is supported by this software, it is a separate package and not
-# necessarily covered by the GNU license.
+
 import os
 import subprocess
 from subprocess import Popen, PIPE
@@ -422,10 +419,7 @@ def note_reader():
     key = "C"
     poly = False
     if request.method == "POST":
-        print "post"
-        print request.form
         if request.form["submit"] == "rule_based":
-            print "rule based"
             dif = Difficulty(request.form['difficulty'])
             key = request.form['key']
             poly = request.form['poly']
@@ -435,11 +429,9 @@ def note_reader():
                 n_measures = abs(int(n_measures))
                 if n_measures > 32:
                     n_measures = 32
-                print "no crash"
 
             except:
                 n_measures = 16
-                print "crash"
 
             music_gen = MusicGenerator()
             # music_gen.compose_music("test.ly", dif, 4, "C")
@@ -469,14 +461,12 @@ def note_reader():
                 )
 
                 p.wait()
-                print "finished med2"
                 return render_template("main2.html", image_name=('song' + time_stamp + '.png'))
             else:
                 # Use try statement in case user tampers with the form values.
                 try:
                     music_gen.compose_music(fname, dif, n_measures, key, poly)
                 except:
-                    print("exception triggered")
                     music_gen.compose_music(fname, Difficulty("EASY"), n_measures, "C", False)
 
                 p = subprocess.Popen([
@@ -491,18 +481,23 @@ def note_reader():
                 )
 
                 p.wait()
-                print "finished"
                 return render_template("main2.html", image_name=('song' + time_stamp + '.png'))
 
 
-
+        # Magenta melody generation
         elif request.form["submit"] == "magenta":
-            print "magenta"
             poly = request.form['poly']
             out_dir = os.path.join(os.path.curdir, 'midi')
-            mag_path = os.path.join(os.path.curdir, 'models', 'basic_rnn.mag')
-            print mag_path
             n_steps = 128
+            # seed melodies
+            # melody = '[60, -2, 60, -2, 67, -2, 67, -2]'
+            melody = '[60, -2, 62, -2, 64, -2, 64, -2]'
+            mag_path = ''
+            if request.form['model'] == "basic_rnn":
+                mag_path = os.path.join(os.path.curdir, 'models', 'basic_rnn.mag')
+            elif request.form['model'] == "basic_rnn_beatls":
+                mag_path = os.path.join(os.path.curdir, 'models', 'basic_rnn_beatles.mag')
+
             try:
                 n_steps = int(request.form["n_steps"])
                 if n_steps < 10:
@@ -512,13 +507,7 @@ def note_reader():
 
             config = 'basic_rnn'
 
-            if request.form['difficulty'] == "EASY":
-                melody = '[60, -2, 60, -2, 67, -2, 67, -2]'
-            elif request.form['difficulty'] == "MEDIUM":
-                melody = '[60, -2, 62, -2, 64, -2, 64, -2]'
-
             m = Melody()
-            print "m dir: {}".format(dir(m))
             # TODO: deal with this in a better way.
             interpreter = '/Users/ianconway/anaconda/envs/tf_env/bin/python'
             melody_gen_path = '/Users/ianconway/Desktop/Projects/magenta/magenta/models/melody_rnn/melody_rnn_generate.py'
@@ -617,11 +606,6 @@ def add_header(response):
 '''
 
 if __name__ == "__main__":
-    # TODO: take AI_Composer dicertory from config file.
-    with open("config.ini") as f:
-        lines = [x.rstrip() for x in f.readlines()]
-        global AI_COMPOSER
-        AI_COMPOSER = lines[0]
 
     app.run(debug=True, )
     # app.run(threaded=True )
