@@ -5,10 +5,11 @@ An open source tool which generates sheet music for the purpose of practicing si
 
 Dependencies
 ============
-Currently, this project only supports Mac OS, however linux and perhaps Windows will be supported soon.
+Currently, this project only supports Mac OS
 * Python 2.7
 * Flask
 * Tensorflow
+* Magenta
 * GNU Lilypond (Mac App is included for convenience)
 * Numpy
 
@@ -28,4 +29,4 @@ http://127.0.0.1:5000/notereader
 Credits
 ===========
 
-Siraj Rival wrote the package that I use for neural network based music composition, and the rendering of the sheet music is done in Lilypond.
+Rendering of the sheet music is done in GNU Lilypond. One of the modes of music generation uses Google Magenta: https://magenta.tensorflow.org/
