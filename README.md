@@ -29,4 +29,4 @@ http://127.0.0.1:5000/notereader
 Credits
 ===========
 
-Rendering of the sheet music is done in GNU Lilypond. One of the modes of music generation uses Google Magenta: https://magenta.tensorflow.org/
+Rendering of the sheet music is done in GNU Lilypond. One of the modes for music generation uses Google Magenta: https://magenta.tensorflow.org/
