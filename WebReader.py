@@ -1,12 +1,13 @@
-# This program runs a small web server which will create a display a piece of sheet
-# music of varying complexity so that a musician can practice sight reading.
-# There are several modes of music generation that are supported.
-# The Easy, Medium and Hard modes are rule based with an element of randomness. They
-# support different keys and the option to be polyphonic. The Old Version setting is
-# another rule based algorithm that I came up with, but it does not support different keys
-# or polyphonic mode.
-
 # This software is built using GNU Lilypond, and as such is provided under the GNU General Public License
+"""WebReader
+This program runs a small web server which will create a display a piece of sheet
+music of varying complexity so that a musician can practice sight reading.
+There are several modes of music generation that are supported.
+The Easy, Medium and Hard modes are rule based with an element of randomness. They
+support different keys and the option to be polyphonic. The Old Version setting is
+another rule based algorithm that I came up with, but it does not support different keys
+or polyphonic mode.
+"""
 
 import os
 import subprocess
@@ -25,45 +26,41 @@ app = Flask(__name__)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 1
 
 
-# softmax function to convert scores to probabilities
-
 def softmax(x):
     """Compute softmax values for each sets of scores in x."""
     return np.exp(x) / np.sum(np.exp(x), axis=0)
 
 
-# Class which represents a measure of music. Each measure has a chord,
-# a set of notes, and a counter which represents how much of the measure
-# has passed already during generation, so we don't try to fill it with
-# too many notes. For the sake of this program, every measure will have
-# only one chord.
-
-
 class Measure:
+    """Class which represents a measure of music. Each measure has a chord,
+    a set of notes, and a counter which represents how much of the measure
+    has passed already during generation, so we don't try to fill it with
+    too many notes. For the sake of this program, every measure will have
+    only one chord.
+    """
     def __init__(self):
+        """Initialize the Measure"""
         self.counter = 0
         self.notes = []
         self.chord = None
 
 
-# Class to represent chord. The chord has a degree of the scale that
-# it's based on, a plain text tonic, and it has a set of weights for
-# each note, which represent the probability of that note being played
-# over the chord.
-
-
 class Chord:
+    """Class to represent chord. The chord has a degree of the scale that
+    it's based on, a plain text tonic, and it has a set of weights for
+    each note, which represent the probability of that note being played
+    over the chord.
+    """
     def __init__(self):
         self.degree = None
         # Weights for each scale degree
         self.weights = [1.6, .3, 1.5, .6, 1.4, .4, .2]
 
 
-# Class to represent a musical note, which can either be a pitch or
-# a rest. The note has a rhythm value.
-
-
 class Note:
+    """Class to represent a musical note, which can either be a pitch or
+    a rest. The note has a rhythm value.
+    """
     def __init__(self):
         self.rest = None
         self.rhythm = None
@@ -71,24 +68,22 @@ class Note:
         self.third = None
 
 
-# Class to represent rhythm value of a note, along with the fraction of
-# a measure; I.E an 8th not would be RhythmValue(8) and RhythmValue
-# eight.fraction would be 0.125. We use the fraction for tallying up
-# to an even measure.
-
-
 class RhythmValue:
+    """Class to represent rhythm value of a note, along with the fraction of
+    a measure; I.E an 8th not would be RhythmValue(8) and RhythmValue
+    eight.fraction would be 0.125. We use the fraction for tallying up
+    to an even measure.
+    """
     def __init__(self, value):
         self.value = value
         self.fraction = 1.0 / value
 
 
-# Class to represent a difficulty level for a composition. For this
-# program's purpose, the difficulty will be determined by the allowable
-# RhythmValues and allowable syncopations.
-
-
 class Difficulty:
+    """Class to represent a difficulty level for a composition. For this
+    program's purpose, the difficulty will be determined by the allowable
+    RhythmValues and allowable syncopations.
+    """
     def __init__(self, level):
         self.level = level
         self.rhythm_values = None
@@ -127,22 +122,20 @@ class Difficulty:
             self.sycopations = []
             self.sycopations.append(0)
             self.sycopations.append(.5)
-            # self.sycopations.append(.25) # Note sure about this
+            # self.sycopations.append(.25) # Not sure about this
             self.rest_chance = 4
 
 
-# Class representing the composition, which has a difficulty, a key, and an array of measures.
-
 class Composition:
+    """Class representing the composition, which has a difficulty, a key, and an array of measures."""
     def __init__(self, difficulty, key):
         self.difficulty = Difficulty(difficulty)
         self.key = key
         self.measures = []
 
 
-# Class representing the Web Reader
-
 class WebReader:
+    """Class representing the Web Reader"""
     def __init__(self):
         self.MusicGenerator = MusicGenerator()
 
@@ -348,7 +341,6 @@ class MusicGenerator:
         if difficulty == 'hard':
             rhythm_values = ['4', '8', '16']
 
-        # fname = raw_input("File Name: ")
         count = 0
         chord_list = []
 
@@ -483,8 +475,8 @@ def note_reader():
                 p.wait()
                 return render_template("main2.html", image_name=('song' + time_stamp + '.png'))
 
-
         # Magenta melody generation
+
         elif request.form["submit"] == "magenta":
             poly = request.form['poly']
             out_dir = os.path.join(os.path.curdir, 'midi')
@@ -495,7 +487,7 @@ def note_reader():
             mag_path = ''
             if request.form['model'] == "basic_rnn":
                 mag_path = os.path.join(os.path.curdir, 'models', 'basic_rnn.mag')
-            elif request.form['model'] == "basic_rnn_beatls":
+            elif request.form['model'] == "basic_rnn_beatles":
                 mag_path = os.path.join(os.path.curdir, 'models', 'basic_rnn_beatles.mag')
 
             try:
@@ -542,17 +534,6 @@ def note_reader():
 
             midi_file = os.path.join(os.path.curdir, "midi", midi_file)
 
-
-            # p = subprocess.Popen([
-            #     "./LilyPond.app/"
-            #     "Contents/Resources/bin/midi2ly",
-            #     "{}".format(midi_file)
-            # ],
-            #     stdout=PIPE,
-            #     stderr=PIPE
-            # )
-            # p.wait()
-
             subprocess.call("python "
                             "midi2ly.py "
                             "{} -o best-midi.ly".format(midi_file), shell=True)
@@ -593,17 +574,9 @@ def note_reader():
             p.wait()
             return render_template("main2.html", image_name=('song' + time_stamp + '.png'))
 
-
     else:
         return render_template("main2.html")
 
-
-'''
-@app.after_request
-def add_header(response):
-    response.cache_control.max_age = 300
-    return response
-'''
 
 if __name__ == "__main__":
 
