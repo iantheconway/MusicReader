@@ -143,7 +143,9 @@ class WebReader:
         compostition = Composition(difficulty)
 
 
+# TODO: use this
 class Logger:
+    """Logging class which writes messages to a file."""
     def __init__(self):
         self.file = open("log.txt", 'a')
         self.file.write("New session\n")
@@ -155,12 +157,14 @@ class Logger:
 
 
 class Note:
+    """Class representing a  note which has a pitch and rhythm value."""
     def __init__(self, rhythm_value, pitch):
         self.rhythm_value = rhythm_value
         self.pitch = pitch
 
 
 class MusicGenerator:
+    """Class representing a music generator which creates compositions using rules."""
     def __init__(self):
         # notes I like to read on guitar
         # TODO: Move these into a more appropriate place, and then work out
@@ -334,8 +338,9 @@ class MusicGenerator:
             file.write("\n")
             file.write("}")
 
-    # Old version of music generation algorithm.
+
     def create_ly_old(self, fname, difficulty):
+        """Old version of music generation algorithm."""
         # quarter note or eighth note.
         rhythm_values = ['4', '8']
         if difficulty == 'hard':
