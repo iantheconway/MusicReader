@@ -22,65 +22,65 @@
     <![endif]-->
 </head>
 <body>
-<div class="jumbotron container">
-    <div class="container">
-        <h1>
-            <span class="glyphicon glyphicon-equalizer"></span>
-            Computer Generated Sheet Music
-        </h1>
-        <p>
-            This is a site for practicing sight reading sheet music. Click on the button below and a computer generated
-            melody will
-            be created.
-        </p>
-        <p>
-        <form method="post">
-            <label for="difficulty">Difficulty:</label>
-            <select name="difficulty" id="difficulty">
-                <option value="EASY">Easy</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HARD">Hard</option>
-            </select>
-            <label for="key">Key:</label>
-            <select name="key" id="key">
-                <option value="C">C</option>
-                <option value="G">G</option>
-                <option value="D">D</option>
-                <option value="A">A</option>
-            </select>
-            <label for="number_of_measures">Number of Measures:</label>
-            <input type="value" name="n_measures">
-            <label for="poly">Polyphony:</label>
-            <select name="poly" id="poly">
-                <option value="MONO">Monophonic</option>
-                <option value="POLY">Polyphonic</option>
-            </select>
-            <button type="submit" name="submit" value="rule_based">Generate</button>
-        </form>
+    <div class="jumbotron container">
+        <div class="container">
+            <h1>
+                <span class="glyphicon glyphicon-equalizer"></span>
+                Computer Generated Sheet Music
+            </h1>
+            <p>
+                This is a site for practicing sight reading sheet music. Click on the button below and a computer generated
+                melody will
+                be created.
+            </p>
+            <p>
+            <form method="post">
+                <label for="difficulty">Difficulty:</label>
+                <select name="difficulty" id="difficulty">
+                    <option value="EASY">Easy</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HARD">Hard</option>
+                </select>
+                <label for="key">Key:</label>
+                <select name="key" id="key">
+                    <option value="C">C</option>
+                    <option value="G">G</option>
+                    <option value="D">D</option>
+                    <option value="A">A</option>
+                </select>
+                <label for="number_of_measures">Number of Measures:</label>
+                <input type="value" name="n_measures">
+                <label for="poly">Polyphony:</label>
+                <select name="poly" id="poly">
+                    <option value="MONO">Monophonic</option>
+                    <option value="POLY">Polyphonic</option>
+                </select>
+                <button type="submit" name="submit" value="rule_based">Generate</button>
+            </form>
 
-        <form method="post">
-            <label for="model">Model:</label>
-            <select name="model" id="model">
-                <option value="basic_rnn">Basic Rnn</option>
-                <option value="basic_rnn_beatles">Beatles Model</option>
-            </select>
-            <label for="number_of_steps">Number of Steps:</label>
-            <input type="value" name="n_steps">
-            <label for="poly">Polyphony:</label>
-            <select name="poly" id="poly">
-                <option value="MONO">Monophonic</option>
-                <option value="POLY">Polyphonic</option>
-            </select>
-            <button type="submit" name="submit" value="magenta">Generate</button>
-        </form>
+            <form method="post">
+                <label for="model">Model:</label>
+                <select name="model" id="model">
+                    <option value="basic_rnn">Basic Rnn</option>
+                    <option value="basic_rnn_beatles">Beatles Model</option>
+                </select>
+                <label for="number_of_steps">Number of Steps:</label>
+                <input type="value" name="n_steps">
+                <label for="poly">Polyphony:</label>
+                <select name="poly" id="poly">
+                    <option value="MONO">Monophonic</option>
+                    <option value="POLY">Polyphonic</option>
+                </select>
+                <button type="submit" name="submit" value="magenta">Generate</button>
+            </form>
+        </div>
     </div>
-</div>
-<div>
-    <p>
-    <center>
-        <img src="{{url_for('send_image', filename=image_name)}}" align="middle">
-    </center>
-    </p>
-    </dic>
+    <div>
+        <p>
+            <center>
+                <img src="{{url_for('send_image', filename=image_name)}}" align="middle">
+            </center>
+        </p>
+    </div>
 </body>
 </html>
