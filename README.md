@@ -20,7 +20,9 @@ Basic Usage
 
 Assuming all the dependencies are installed:
 
+```
 python WebReader.py 
+```
 
 in your web browser, go to:
 
