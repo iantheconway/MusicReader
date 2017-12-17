@@ -280,7 +280,6 @@ class MusicGenerator:
                         note.rest = True
                         note.rest = False
                         # Decide the pitch of the note
-                        choices = []
                         note_indicies = range(7)
                         note_index = np.random.choice(note_indicies,
                                                       p=softmax(chord.weights))
@@ -431,11 +430,9 @@ def note_reader():
                 n_measures = 16
 
             music_gen = MusicGenerator()
-            # music_gen.compose_music("test.ly", dif, 4, "C")
 
             # TODO: get directory name from os
             fname = "SomeRandomNotes" + time_stamp + ".ly"
-            image_folder = "./images"
 
             # TODO: Change to new version
             if poly == "POLY":
@@ -504,7 +501,6 @@ def note_reader():
 
             config = 'basic_rnn'
 
-            m = Melody()
             # TODO: deal with this in a better way.
             interpreter = '/Users/ianconway/anaconda/envs/tf_env/bin/python'
             melody_gen_path = '/Users/ianconway/Desktop/Projects/magenta/magenta/models/melody_rnn/melody_rnn_generate.py'
