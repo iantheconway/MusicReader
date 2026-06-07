@@ -23,9 +23,13 @@ frontend/  TypeScript + Vite — OpenSheetMusicDisplay (render) + Tone.js (playb
 
 ### Backend (`backend/musicreader/`)
 - `model.py` — `GenerationConfig` (the single serializable description of an
-  exercise) + `RestConfig`, `Clef`/ranges, key catalog (major + relative minors,
-  `parse_key`/`key_label`), chord-tone weights, interval options, `validate()`
-  (incl. fillability), and Easy/Medium/Hard `PRESETS`.
+  exercise; `measures` defaults to 16) + `RestConfig`, `Clef`/ranges, the key
+  catalog (`KEY_DEFS`: all 12 tonics × major/minor/harmonic-minor, id scheme
+  `C` / `Cm` / `Chm`, `parse_key` → (tonic, quality)), chord-tone weights,
+  interval options, `validate()` (incl. fillability over `fill_values`), and
+  Easy/Medium/Hard `PRESETS`. Note: `rest_values` are chosen independently of
+  note `rhythm_values`; `fill_values` is their union when rests are enabled (a
+  slot may be realizable only as a rest).
 - `rhythm.py` — the rhythm vocabulary (`RhythmValue`: whole→sixteenth, dotted,
   triplets) in exact `Fraction` quarter-lengths, plus `fill_measure` (randomized
   exhaustive backtracking that fills any meter exactly, with an optional
@@ -47,9 +51,12 @@ frontend/  TypeScript + Vite — OpenSheetMusicDisplay (render) + Tone.js (playb
   it POSTs as-is and persists unchanged), `DEFAULT_CONFIG`, `summarize`.
 - `store.ts` — `ConfigStore`: localStorage-backed named saves + recent history
   (de-duped by musical signature) + JSON export/import. Storage-agnostic surface.
-- `main.ts` — UI wiring: builds the sectioned control panel from `/api/options`,
-  reads/applies a `GenerationConfig`, POSTs to `/api/generate`, renders with OSMD,
-  drives the player, presets, and the saved/recent library.
+- `main.ts` — UI wiring: presets + Name field + Generate and the saved/recent
+  library are always visible; the full control panel lives in a collapsible
+  `<details id="customize">`. Builds controls from `/api/options` (keys grouped
+  major/minor/harmonic), reads/applies a `GenerationConfig`, POSTs to
+  `/api/generate`. OSMD is configured with `drawMeasureNumbers: false`; generate
+  preserves scroll position (OSMD's cursor.show() otherwise steals it).
 - `player.ts` — `Player`: flattens the rendered score into timed steps and plays
   them with Tone.js. Events are scheduled on `Tone.Transport` in **ticks**, so
   setting `Transport.bpm` rescales everything (live tempo). The OSMD cursor is

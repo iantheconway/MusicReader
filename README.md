@@ -18,10 +18,11 @@ frontend/  TypeScript + Vite — OpenSheetMusicDisplay (render) + Tone.js (playb
 - **Generation** is rule-based and driven by a `GenerationConfig`: each measure
   picks a diatonic chord root, fills the bar via a rhythm engine, and samples
   note scale-degrees biased toward the chord tones. Configurable: time signature
-  (incl. compound/odd meters), allowed keys (major + minor, natural/harmonic),
-  clef (treble/bass), rhythm values (incl. dotted + triplets), rests, max melodic
-  leap, syncopation, polyphony, measures, and tempo. Easy/Medium/Hard are presets
-  that fill the config. See [generator.py](backend/musicreader/generator.py),
+  (incl. compound/odd meters), keys (all 12 tonics in major / natural-minor /
+  harmonic-minor), clef (treble/bass), note values (incl. dotted + triplets),
+  rests with their own selectable durations + density, max melodic leap,
+  syncopation, polyphony, measures, and tempo. Easy/Medium/Hard are presets that
+  fill the config; all customization lives behind a collapsible panel. See [generator.py](backend/musicreader/generator.py),
   [rhythm.py](backend/musicreader/rhythm.py), and [model.py](backend/musicreader/model.py).
 - The backend exports the piece as **MusicXML**; the frontend renders it with
   OSMD and plays it with a small Tone.js engine that schedules notes on the
