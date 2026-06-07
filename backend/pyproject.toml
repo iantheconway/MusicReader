@@ -1,0 +1,20 @@
+[project]
+name = "musicreader"
+version = "0.1.0"
+description = "Procedural sight-reading exercise generator (MusicXML API)"
+requires-python = ">=3.12"
+dependencies = [
+    "music21>=9.1",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["musicreader*"]

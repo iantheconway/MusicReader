@@ -1,3 +1,24 @@
-*.DS_Store
-*.pyc
-*.ly
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Node / frontend
+node_modules/
+dist/
+*.local
+
+# Generated music artifacts
+*.midi
+backend/out/

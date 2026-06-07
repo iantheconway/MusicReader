@@ -1,34 +1,71 @@
-# 
-Overview
-============
-An open source tool which generates sheet music for the purpose of practicing sight reading.
+# MusicReader
 
-Dependencies
-============
-Currently, this project only supports Mac OS
-* Python 2.7
-* Flask
-* Tensorflow
-* Magenta
-* GNU Lilypond (Mac App is included for convenience)
-* Numpy
+A tool for practicing **sight reading**. It procedurally generates short
+exercises of sheet music at varying difficulty, key, and clef, displays them in
+the browser, and plays them back at an adjustable tempo with a moving cursor so
+you can read along.
 
-AI_Composer for Neural Network mode: https://github.com/llSourcell/AI_Composer
+Originally a school project (~2015, Python 2 + LilyPond + TensorFlow/Magenta),
+now modernized into a Python API + TypeScript web app.
 
-Basic Usage
-===========
-
-Assuming all the dependencies are installed:
+## Architecture
 
 ```
-python WebReader.py 
+backend/   Python 3.12 — music21 generator + FastAPI, emits MusicXML
+frontend/  TypeScript + Vite — OpenSheetMusicDisplay (render) + Tone.js (playback)
 ```
 
-in your web browser, go to:
+- **Generation** is rule-based: each measure picks a diatonic chord root, then
+  fills the bar with notes whose scale degrees are biased toward the chord tones,
+  at a rhythmic complexity set by the difficulty level. See
+  [backend/musicreader/generator.py](backend/musicreader/generator.py).
+- The backend exports the piece as **MusicXML**; the frontend renders it with
+  OSMD and plays it with a small Tone.js engine that schedules notes on the
+  Transport (in ticks, so tempo can change live) and follows OSMD's cursor.
+  See [frontend/src/player.ts](frontend/src/player.ts).
 
-http://127.0.0.1:5000/notereader
+## Running it
 
-Credits
-===========
+You need **Python 3.12+** and **Node 18+**.
 
-Rendering of the sheet music is done in GNU Lilypond. One of the modes for music generation uses Google Magenta: https://magenta.tensorflow.org/
+### Backend
+
+```bash
+cd backend
+python3 -m venv .venv
+.venv/bin/pip install -e ".[dev]"
+.venv/bin/uvicorn musicreader.api:app --reload --port 8000
+```
+
+API endpoints:
+- `GET /api/options` — available difficulties, keys, clefs.
+- `GET /api/generate?difficulty=EASY&key=C&clef=treble&measures=8&polyphonic=false&tempo=90`
+  — returns MusicXML.
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Then open the URL Vite prints (default http://localhost:5173). The dev server
+proxies `/api` to the backend on port 8000, so run both.
+
+### Tests
+
+```bash
+cd backend && .venv/bin/pytest
+```
+
+## Roadmap
+
+- Richer generation rules (phrasing, voice leading, time signatures beyond 4/4).
+- Optional ML-based generation (modern models, not the retired Magenta path).
+
+## Credits
+
+Notation rendering by [OpenSheetMusicDisplay](https://opensheetmusicdisplay.org/);
+audio via [Tone.js](https://tonejs.github.io/); music modeling via
+[music21](https://web.mit.edu/music21/).

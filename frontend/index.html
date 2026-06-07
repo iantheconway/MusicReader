@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MusicReader — Sight Reading Practice</title>
+  </head>
+  <body>
+    <header>
+      <h1>MusicReader</h1>
+      <p class="tagline">Generate and play sight-reading exercises.</p>
+    </header>
+
+    <form id="controls">
+      <label>Difficulty
+        <select id="difficulty"></select>
+      </label>
+      <label>Key
+        <select id="key"></select>
+      </label>
+      <label>Clef
+        <select id="clef"></select>
+      </label>
+      <label>Measures
+        <input id="measures" type="number" min="1" max="64" value="8" />
+      </label>
+      <label class="checkbox">
+        <input id="polyphonic" type="checkbox" /> Polyphonic
+      </label>
+      <button type="submit" id="generate">Generate</button>
+    </form>
+
+    <section id="player">
+      <button id="play" disabled>▶ Play</button>
+      <button id="pause" disabled>❚❚ Pause</button>
+      <button id="stop" disabled>■ Stop</button>
+      <label class="tempo">Tempo: <span id="tempo-value">90</span> bpm
+        <input id="tempo" type="range" min="30" max="240" value="90" />
+      </label>
+    </section>
+
+    <p id="status"></p>
+    <div id="sheet"></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
