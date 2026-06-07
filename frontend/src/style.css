@@ -22,7 +22,8 @@ header h1 {
 }
 
 form#controls,
-section#player {
+section#player,
+section#library {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
@@ -32,6 +33,59 @@ section#player {
   border: 1px solid var(--border);
   border-radius: 8px;
   margin-bottom: 1rem;
+}
+
+form#controls {
+  align-items: stretch;
+}
+
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+}
+fieldset.wide {
+  flex-basis: 100%;
+}
+legend {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #777;
+  padding: 0 0.25rem;
+}
+
+.checkgroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+  max-width: 22rem;
+}
+
+.presets {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.presets button {
+  background: #4a5568;
+}
+
+section#library .spacer {
+  flex: 1;
+}
+.filebtn {
+  cursor: pointer;
+}
+.filebtn input {
+  display: none;
+}
+button#generate {
+  align-self: end;
 }
 
 label {

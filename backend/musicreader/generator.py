@@ -1,38 +1,43 @@
 """Rule-based sight-reading exercise generator.
 
-Ported and modernized from the original Python 2 ``MusicGenerator``. The core
-idea is preserved: each measure picks a random diatonic chord root, then fills
-the bar with notes whose scale degrees are sampled with a bias toward the
-chord tones (root / third / fifth), at a rhythmic complexity set by difficulty.
-
-Output is a :class:`music21.stream.Score`, which can be exported to MusicXML
-for the frontend (see :mod:`musicreader.musicxml`).
+Builds a :class:`music21.stream.Score` from a :class:`GenerationConfig`. The core
+idea is preserved from the original: each measure picks a random diatonic chord
+root, then fills the bar (via the :mod:`musicreader.rhythm` engine) with notes
+whose scale degrees are sampled with a bias toward the chord tones.
 """
 
 from __future__ import annotations
 
 import math
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from music21 import clef as m21clef
 from music21 import key as m21key
 from music21 import meter, note, stream, tempo
 from music21.pitch import Pitch
-from music21.scale import MajorScale
+from music21.scale import ConcreteScale, HarmonicMinorScale, MajorScale, MinorScale
 
-from .model import CHORD_TONE_WEIGHTS, CLEF_RANGE, Clef, Difficulty, get_difficulty
+from .model import (
+    CHORD_TONE_WEIGHTS,
+    CLEF_RANGE,
+    SUPPORTED_KEYS,
+    Clef,
+    GenerationConfig,
+    get_preset,
+    parse_key,
+)
+from .rhythm import RhythmValue, UnfillableMeasureError, fill_measure, resolve
 
-# Supported major keys, mapped to their tonic pitch name.
-SUPPORTED_KEYS: tuple[str, ...] = ("C", "G", "D", "A", "E", "F", "Bb")
-
-MAX_MEASURES = 64
-_BEATS_PER_MEASURE = 4.0  # 4/4 only, for now
+__all__ = ["GenerationParams", "GenerationConfig", "SUPPORTED_KEYS", "generate_score"]
 
 
 @dataclass
 class GenerationParams:
-    """Parameters controlling a single generated exercise."""
+    """Legacy flat parameters, kept as a thin adapter over GenerationConfig.
+
+    The difficulty name selects a preset; the remaining fields override it.
+    """
 
     difficulty: str = "EASY"
     key: str = "C"
@@ -42,19 +47,14 @@ class GenerationParams:
     tempo_bpm: int = 90
     seed: int | None = None
 
-    def normalized(self) -> "GenerationParams":
-        """Return a copy with values clamped to safe, supported ranges."""
-        key = self.key if self.key in SUPPORTED_KEYS else "C"
-        clef = self.clef if isinstance(self.clef, Clef) else Clef(str(self.clef))
-        measures = max(1, min(int(self.measures), MAX_MEASURES))
-        tempo_bpm = max(20, min(int(self.tempo_bpm), 300))
-        return GenerationParams(
-            difficulty=self.difficulty,
-            key=key,
-            clef=clef,
-            measures=measures,
+    def to_config(self) -> GenerationConfig:
+        return replace(
+            get_preset(self.difficulty),
+            keys=[self.key],
+            clef=self.clef,
+            measures=self.measures,
             polyphonic=self.polyphonic,
-            tempo_bpm=tempo_bpm,
+            tempo_bpm=self.tempo_bpm,
             seed=self.seed,
         )
 
@@ -68,41 +68,25 @@ def _softmax(weights: tuple[float, ...]) -> list[float]:
 _DEGREE_PROBS = _softmax(CHORD_TONE_WEIGHTS)
 
 
-def _measure_durations(diff: Difficulty, rng: random.Random) -> list[float]:
-    """Build a list of quarter-length durations that exactly fill one 4/4 bar."""
-    remaining = _BEATS_PER_MEASURE
-    out: list[float] = []
-    while remaining > 1e-9:
-        fitting = [
-            4.0 / d for d in diff.rhythm_denominators if 4.0 / d <= remaining + 1e-9
-        ]
-        ql = rng.choice(fitting)
-        # On easier levels, eighths only appear as adjacent pairs.
-        if ql == 0.5 and diff.pair_eighths:
-            if remaining >= 1.0:
-                out.extend([0.5, 0.5])
-                remaining -= 1.0
-                continue
-            non_eighth = [c for c in fitting if c != 0.5]
-            ql = rng.choice(non_eighth) if non_eighth else 0.5
-        out.append(ql)
-        remaining -= ql
-    return out
+def _build_scale(tonic: str, is_minor: bool, harmonic: bool) -> ConcreteScale:
+    """Build the music21 scale for a key. Minor keys use natural or harmonic minor."""
+    if not is_minor:
+        return MajorScale(tonic)
+    return HarmonicMinorScale(tonic) if harmonic else MinorScale(tonic)
 
 
 class _PitchPool:
-    """Diatonic pitches of a key within a clef's range, indexed by scale degree."""
+    """Diatonic pitches of a scale within a clef's range, indexed by scale degree."""
 
-    def __init__(self, key: str, clef: Clef):
+    def __init__(self, scale: ConcreteScale, clef: Clef):
         low, high = CLEF_RANGE[clef]
-        self.scale = MajorScale(key.replace("b", "-"))  # music21 uses '-' for flat
+        self.scale = scale
         pitches = self.scale.getPitches(low, high)
         self.by_degree: dict[int, list[Pitch]] = {}
         for p in pitches:
             degree = self.scale.getScaleDegreeFromPitch(p)
             if degree is not None:
                 self.by_degree.setdefault(degree, []).append(p)
-        # Fallback so we never fail to place a note.
         self.all = pitches
 
     def pick(self, degree: int, near: Pitch | None) -> Pitch:
@@ -112,7 +96,6 @@ class _PitchPool:
         return min(candidates, key=lambda p: abs(p.midi - near.midi))
 
     def third_above(self, base: Pitch) -> Pitch | None:
-        """The diatonic third above ``base``, if it exists within range."""
         base_degree = self.scale.getScaleDegreeFromPitch(base)
         if base_degree is None:
             return None
@@ -121,52 +104,135 @@ class _PitchPool:
         return min(candidates, key=lambda p: p.midi) if candidates else None
 
 
-def generate_score(params: GenerationParams) -> stream.Score:
+def generate_score(config: GenerationConfig | GenerationParams) -> stream.Score:
     """Generate a sight-reading exercise as a music21 Score."""
-    params = params.normalized()
-    rng = random.Random(params.seed)
-    diff = get_difficulty(params.difficulty)
-    pool = _PitchPool(params.key, params.clef)
+    if isinstance(config, GenerationParams):
+        config = config.to_config()
+    config = config.normalized()
+    config.validate()
+
+    rng = random.Random(config.seed)
+    key = rng.choice(config.keys)
+    tonic, is_minor = parse_key(key)
+    pool = _PitchPool(_build_scale(tonic, is_minor, config.harmonic_minor), config.clef)
+    values = resolve(config.rhythm_values)
+    measure_len = config.measure_quarter_length
 
     part = stream.Part()
     part.append(
-        m21clef.TrebleClef() if params.clef is Clef.TREBLE else m21clef.BassClef()
+        m21clef.TrebleClef() if config.clef is Clef.TREBLE else m21clef.BassClef()
     )
-    part.append(m21key.Key(params.key.replace("b", "-")))
-    part.append(meter.TimeSignature("4/4"))
-    part.append(tempo.MetronomeMark(number=params.tempo_bpm))
+    part.append(m21key.Key(tonic, "minor" if is_minor else "major"))
+    part.append(meter.TimeSignature(config.time_signature))
+    part.append(tempo.MetronomeMark(number=config.tempo_bpm))
 
     prev: Pitch | None = None
-    for _ in range(params.measures):
+    for _ in range(config.measures):
         measure = stream.Measure()
         chord_root = rng.randint(1, 7)
-        for ql in _measure_durations(diff, rng):
-            if rng.randint(1, diff.rest_chance) == 1:
-                measure.append(note.Rest(quarterLength=ql))
-                continue
-            note_index = rng.choices(range(7), weights=_DEGREE_PROBS, k=1)[0]
-            degree = (chord_root - 1 + note_index) % 7 + 1
-            p = pool.pick(degree, prev)
-            third = pool.third_above(p) if params.polyphonic else None
-            if third is not None and rng.randint(0, 3) == 2:
-                from music21 import chord as m21chord
-
-                measure.append(m21chord.Chord([p, third], quarterLength=ql))
-            else:
-                measure.append(note.Note(p, quarterLength=ql))
-            prev = p
+        for token in _fill_bar(measure_len, values, config, rng):
+            prev = _emit_token(measure, token, config, pool, chord_root, prev, rng)
         part.append(measure)
 
+    _finalize(part)
     score = stream.Score()
     score.append(part)
-    score.metadata = _metadata(params)
+    score.metadata = _metadata(config, key)
     return score
 
 
-def _metadata(params: GenerationParams):
+def _fill_bar(
+    measure_len, values, config: GenerationConfig, rng: random.Random
+) -> list[RhythmValue]:
+    """Fill a bar, honoring the no-syncopation rule when possible.
+
+    If the rhythm set can't fill the bar without syncopation, fall back to
+    allowing it for this bar rather than failing (rare; keeps generation robust).
+    """
+    if config.syncopation:
+        return fill_measure(measure_len, values, rng)
+    try:
+        return fill_measure(
+            measure_len,
+            values,
+            rng,
+            beat_length=config.beat_quarter_length,
+            allow_syncopation=False,
+        )
+    except UnfillableMeasureError:
+        return fill_measure(measure_len, values, rng)
+
+
+def _choose_pitch(
+    pool: _PitchPool,
+    chord_root: int,
+    prev: Pitch | None,
+    max_interval: int | None,
+    rng: random.Random,
+) -> Pitch:
+    """Sample a chord-tone-weighted pitch, preferring leaps within max_interval.
+
+    Best-effort: if no sampled degree lands within the cap (e.g. near the edge of
+    the staff range), the smallest available leap is used.
+    """
+    best: Pitch | None = None
+    best_leap = 0
+    for _ in range(8):
+        note_index = rng.choices(range(7), weights=_DEGREE_PROBS, k=1)[0]
+        degree = (chord_root - 1 + note_index) % 7 + 1
+        pitch = pool.pick(degree, prev)
+        if prev is None or max_interval is None:
+            return pitch
+        leap = abs(pitch.midi - prev.midi)
+        if leap <= max_interval:
+            return pitch
+        if best is None or leap < best_leap:
+            best, best_leap = pitch, leap
+    return best if best is not None else pitch
+
+
+def _emit_token(
+    measure: stream.Measure,
+    token: RhythmValue,
+    config: GenerationConfig,
+    pool: _PitchPool,
+    chord_root: int,
+    prev: Pitch | None,
+    rng: random.Random,
+) -> Pitch | None:
+    """Append one rhythm token (1 note, or a tuplet group) to the measure."""
+    for _ in range(token.group_size):
+        ql = token.quarter_length
+        if config.rests.enabled and rng.random() < config.rests.density:
+            measure.append(note.Rest(quarterLength=ql))
+            continue
+        pitch = _choose_pitch(pool, chord_root, prev, config.max_interval, rng)
+        third = pool.third_above(pitch) if config.polyphonic else None
+        if third is not None and rng.randint(0, 3) == 2:
+            from music21 import chord as m21chord
+
+            measure.append(m21chord.Chord([pitch, third], quarterLength=ql))
+        else:
+            measure.append(note.Note(pitch, quarterLength=ql))
+        prev = pitch
+    return prev
+
+
+def _finalize(part: stream.Part) -> None:
+    """Add accidentals, beams, and tuplet brackets; best-effort so generation
+    never fails on notation cleanup (e.g. the raised 7th in harmonic minor)."""
+    for method in ("makeAccidentals", "makeBeams", "makeTupletBrackets"):
+        try:
+            getattr(part, method)(inPlace=True)
+        except Exception:
+            pass
+
+
+def _metadata(config: GenerationConfig, key: str):
     from music21 import metadata as m21meta
 
     md = m21meta.Metadata()
-    md.title = f"Sight Reading — {params.difficulty.title()} in {params.key}"
+    label = config.name or "Custom"
+    md.title = f"Sight Reading — {label} in {key}"
     md.composer = "MusicReader"
     return md
