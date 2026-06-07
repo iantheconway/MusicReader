@@ -28,25 +28,56 @@ CLEF_RANGE: dict[Clef, tuple[str, str]] = {
     Clef.BASS: ("E2", "D4"),
 }
 
-# Supported keys. Major ids are the tonic ("C", "Bb"); minor ids add an "m"
-# suffix ("Am", "F#m"). The minors here are the relative minors of the majors.
-MAJOR_KEYS: tuple[str, ...] = ("C", "G", "D", "A", "E", "F", "Bb")
-MINOR_KEYS: tuple[str, ...] = ("Am", "Em", "Bm", "F#m", "C#m", "Dm", "Gm")
-SUPPORTED_KEYS: tuple[str, ...] = MAJOR_KEYS + MINOR_KEYS
+# Supported keys: all 12 tonics in major, (natural) minor, and harmonic minor.
+# Id scheme: major = tonic ("C", "F#"); minor = tonic + "m" ("Cm");
+# harmonic minor = tonic + "hm" ("Chm").
+_MAJOR_TONICS: tuple[str, ...] = (
+    "C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B",
+)
+_MINOR_TONICS: tuple[str, ...] = (
+    "C", "C#", "D", "Eb", "E", "F", "F#", "G", "G#", "A", "Bb", "B",
+)
 
 
-def parse_key(key_id: str) -> tuple[str, bool]:
-    """Split a key id into (music21 tonic name, is_minor). 'Bbm' -> ('B-', True)."""
-    is_minor = key_id.endswith("m")
-    tonic = key_id[:-1] if is_minor else key_id
-    return tonic.replace("b", "-"), is_minor
+@dataclass(frozen=True)
+class KeyDef:
+    """A selectable key: its id, display label, and UI group."""
+
+    id: str
+    label: str
+    group: str
+
+
+def _build_key_defs() -> tuple[KeyDef, ...]:
+    defs = [KeyDef(t, f"{t} major", "Major") for t in _MAJOR_TONICS]
+    defs += [KeyDef(t + "m", f"{t} minor", "Minor") for t in _MINOR_TONICS]
+    defs += [
+        KeyDef(t + "hm", f"{t} harmonic minor", "Harmonic minor")
+        for t in _MINOR_TONICS
+    ]
+    return tuple(defs)
+
+
+KEY_DEFS: tuple[KeyDef, ...] = _build_key_defs()
+SUPPORTED_KEYS: tuple[str, ...] = tuple(k.id for k in KEY_DEFS)
+_KEY_LABELS: dict[str, str] = {k.id: k.label for k in KEY_DEFS}
+
+
+def parse_key(key_id: str) -> tuple[str, str]:
+    """Split a key id into (music21 tonic, quality).
+
+    Quality is one of "major", "minor", "harmonic". 'Ebhm' -> ('E-', 'harmonic').
+    """
+    if key_id.endswith("hm"):
+        return key_id[:-2].replace("b", "-"), "harmonic"
+    if key_id.endswith("m"):
+        return key_id[:-1].replace("b", "-"), "minor"
+    return key_id.replace("b", "-"), "major"
 
 
 def key_label(key_id: str) -> str:
-    """Human-readable key name, e.g. 'F#m' -> 'F# minor'."""
-    is_minor = key_id.endswith("m")
-    tonic = key_id[:-1] if is_minor else key_id
-    return f"{tonic} {'minor' if is_minor else 'major'}"
+    """Human-readable key name, e.g. 'F#hm' -> 'F# harmonic minor'."""
+    return _KEY_LABELS.get(key_id, key_id)
 
 
 # Melodic-leap caps offered in the UI, in semitones.
@@ -89,17 +120,28 @@ class GenerationConfig:
     denominator: int = 4
     keys: list[str] = field(default_factory=lambda: ["C"])
     clef: Clef = Clef.TREBLE
-    measures: int = 8
+    measures: int = 16
     rhythm_values: list[str] = field(
+        default_factory=lambda: ["whole", "half", "quarter"]
+    )
+    rest_values: list[str] = field(
         default_factory=lambda: ["whole", "half", "quarter"]
     )
     syncopation: bool = False
     max_interval: int | None = None  # semitone cap on melodic leaps
     rests: RestConfig = field(default_factory=RestConfig)
     polyphonic: bool = False
-    harmonic_minor: bool = False  # raise the 7th in minor keys
     tempo_bpm: int = 90
     seed: int | None = None
+
+    @property
+    def fill_values(self) -> list[str]:
+        """Rhythm-value ids usable to fill a bar: note durations, plus rest
+        durations when rests are enabled (a slot may be realizable only as a rest)."""
+        if not self.rests.enabled:
+            return list(self.rhythm_values)
+        extra = [r for r in self.rest_values if r not in self.rhythm_values]
+        return list(self.rhythm_values) + extra
 
     @property
     def measure_quarter_length(self) -> Fraction:
@@ -144,10 +186,14 @@ class GenerationConfig:
             raise ConfigError(f"Unsupported key(s): {', '.join(unknown_keys)}")
         if not self.rhythm_values:
             raise ConfigError("At least one rhythm value must be selected.")
-        unknown_rhythms = [r for r in self.rhythm_values if r not in CATALOG]
+        unknown_rhythms = [
+            r for r in (*self.rhythm_values, *self.rest_values) if r not in CATALOG
+        ]
         if unknown_rhythms:
             raise ConfigError(f"Unknown rhythm value(s): {', '.join(unknown_rhythms)}")
-        if not can_fill(self.measure_quarter_length, resolve(self.rhythm_values)):
+        if self.rests.enabled and not self.rest_values:
+            raise ConfigError("Enable rests requires at least one rest value.")
+        if not can_fill(self.measure_quarter_length, resolve(self.fill_values)):
             raise ConfigError(
                 f"The selected note values can't exactly fill a "
                 f"{self.time_signature} measure. Add a shorter value."
@@ -172,6 +218,7 @@ PRESETS: dict[str, GenerationConfig] = {
         denominator=4,
         keys=["C", "G", "D", "F"],
         rhythm_values=["half", "quarter", "eighth"],
+        rest_values=["half", "quarter"],
         syncopation=False,
         max_interval=7,
         rests=RestConfig(enabled=True, density=0.15),
@@ -190,6 +237,7 @@ PRESETS: dict[str, GenerationConfig] = {
             "dotted-quarter",
             "eighth-triplet",
         ],
+        rest_values=["half", "quarter", "eighth"],
         syncopation=True,
         max_interval=12,
         rests=RestConfig(enabled=True, density=0.2),
@@ -205,5 +253,6 @@ def get_preset(name: str) -> GenerationConfig:
         preset,
         keys=list(preset.keys),
         rhythm_values=list(preset.rhythm_values),
+        rest_values=list(preset.rest_values),
         rests=RestConfig(enabled=preset.rests.enabled, density=preset.rests.density),
     )

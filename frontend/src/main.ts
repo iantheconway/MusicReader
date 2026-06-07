@@ -6,24 +6,10 @@ import "./style.css";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
-// Control elements
-const numeratorEl = $<HTMLInputElement>("numerator");
-const denominatorEl = $<HTMLSelectElement>("denominator");
-const keysEl = $<HTMLDivElement>("keys");
-const harmonicEl = $<HTMLInputElement>("harmonic_minor");
-const clefEl = $<HTMLSelectElement>("clef");
-const rhythmEl = $<HTMLDivElement>("rhythm");
-const restsEnabledEl = $<HTMLInputElement>("rests_enabled");
-const densityEl = $<HTMLInputElement>("density");
-const densityValueEl = $<HTMLSpanElement>("density_value");
-const maxIntervalEl = $<HTMLSelectElement>("max_interval");
-const syncopationEl = $<HTMLInputElement>("syncopation");
-const polyphonicEl = $<HTMLInputElement>("polyphonic");
-const measuresEl = $<HTMLInputElement>("measures");
+// Top bar / library
 const presetsEl = $<HTMLDivElement>("presets");
-const controlsEl = $<HTMLFormElement>("controls");
-
-// Library elements
+const nameEl = $<HTMLInputElement>("config_name");
+const generateBtn = $<HTMLButtonElement>("generate");
 const configListEl = $<HTMLSelectElement>("config_list");
 const loadBtn = $<HTMLButtonElement>("load");
 const saveBtn = $<HTMLButtonElement>("save");
@@ -31,7 +17,23 @@ const deleteBtn = $<HTMLButtonElement>("delete");
 const exportBtn = $<HTMLButtonElement>("export");
 const importEl = $<HTMLInputElement>("import");
 
-// Player elements
+// Customization controls
+const numeratorEl = $<HTMLInputElement>("numerator");
+const denominatorEl = $<HTMLSelectElement>("denominator");
+const keysEl = $<HTMLDivElement>("keys");
+const clefEl = $<HTMLSelectElement>("clef");
+const rhythmEl = $<HTMLDivElement>("rhythm");
+const restValuesEl = $<HTMLDivElement>("rest_values");
+const restsEnabledEl = $<HTMLInputElement>("rests_enabled");
+const densityEl = $<HTMLInputElement>("density");
+const densityValueEl = $<HTMLSpanElement>("density_value");
+const maxIntervalEl = $<HTMLSelectElement>("max_interval");
+const syncopationEl = $<HTMLInputElement>("syncopation");
+const polyphonicEl = $<HTMLInputElement>("polyphonic");
+const measuresEl = $<HTMLInputElement>("measures");
+const controlsEl = $<HTMLFormElement>("controls");
+
+// Player
 const playBtn = $<HTMLButtonElement>("play");
 const pauseBtn = $<HTMLButtonElement>("pause");
 const stopBtn = $<HTMLButtonElement>("stop");
@@ -41,7 +43,7 @@ const statusEl = $<HTMLParagraphElement>("status");
 
 interface Options {
   difficulties: string[];
-  keys: { id: string; label: string }[];
+  keys: { id: string; label: string; group: string }[];
   clefs: string[];
   rhythmValues: { id: string; label: string }[];
   intervals: { semitones: number; label: string }[];
@@ -53,6 +55,7 @@ const osmd = new OpenSheetMusicDisplay($("sheet"), {
   drawSubtitle: false,
   drawComposer: false,
   drawPartNames: false,
+  drawMeasureNumbers: false,
   followCursor: true,
   cursorsOptions: [{ type: 0, color: "#2b6cb0", alpha: 0.4, follow: true }],
 });
@@ -75,20 +78,41 @@ function updateButtons() {
 }
 engine.onStateChange = updateButtons;
 
-// --- Build dynamic controls from /api/options --------------------------------
-function buildCheckgroup(
-  container: HTMLElement,
-  items: { id: string; label: string }[],
-) {
+// --- Build dynamic controls --------------------------------------------------
+function buildCheckgroup(container: HTMLElement, items: { id: string; label: string }[]) {
   container.innerHTML = "";
-  for (const { id, label } of items) {
-    const wrap = document.createElement("label");
-    wrap.className = "checkbox";
-    const box = document.createElement("input");
-    box.type = "checkbox";
-    box.value = id;
-    wrap.append(box, document.createTextNode(" " + label));
-    container.appendChild(wrap);
+  for (const { id, label } of items) container.appendChild(checkbox(id, label));
+}
+
+function checkbox(value: string, label: string): HTMLLabelElement {
+  const wrap = document.createElement("label");
+  wrap.className = "checkbox";
+  const box = document.createElement("input");
+  box.type = "checkbox";
+  box.value = value;
+  wrap.append(box, document.createTextNode(" " + label));
+  return wrap;
+}
+
+function buildKeyGroups(container: HTMLElement, keys: Options["keys"]) {
+  container.innerHTML = "";
+  const groups = new Map<string, typeof keys>();
+  for (const k of keys) {
+    if (!groups.has(k.group)) groups.set(k.group, []);
+    groups.get(k.group)!.push(k);
+  }
+  for (const [group, items] of groups) {
+    const col = document.createElement("div");
+    col.className = "keygroup";
+    const heading = document.createElement("span");
+    heading.className = "keygroup-title";
+    heading.textContent = group;
+    col.appendChild(heading);
+    const grid = document.createElement("div");
+    grid.className = "checkgroup";
+    for (const k of items) grid.appendChild(checkbox(k.id, k.label));
+    col.appendChild(grid);
+    container.appendChild(col);
   }
 }
 
@@ -112,28 +136,19 @@ async function loadOptions() {
   ]);
   presets = presetData;
 
-  buildCheckgroup(keysEl, options.keys);
+  buildKeyGroups(keysEl, options.keys);
   buildCheckgroup(rhythmEl, options.rhythmValues);
+  buildCheckgroup(restValuesEl, options.rhythmValues);
 
   clefEl.innerHTML = "";
   for (const c of options.clefs) {
-    const opt = document.createElement("option");
-    opt.value = c;
-    opt.textContent = c.charAt(0).toUpperCase() + c.slice(1);
-    clefEl.appendChild(opt);
+    const opt = new Option(c.charAt(0).toUpperCase() + c.slice(1), c);
+    clefEl.add(opt);
   }
 
   maxIntervalEl.innerHTML = "";
-  const any = document.createElement("option");
-  any.value = "";
-  any.textContent = "Any";
-  maxIntervalEl.appendChild(any);
-  for (const i of options.intervals) {
-    const opt = document.createElement("option");
-    opt.value = String(i.semitones);
-    opt.textContent = i.label;
-    maxIntervalEl.appendChild(opt);
-  }
+  maxIntervalEl.add(new Option("Any", ""));
+  for (const i of options.intervals) maxIntervalEl.add(new Option(i.label, String(i.semitones)));
 
   presetsEl.innerHTML = "";
   for (const name of options.difficulties) {
@@ -150,12 +165,13 @@ async function loadOptions() {
 
 // --- Config <-> DOM ----------------------------------------------------------
 function applyConfig(c: GenerationConfig) {
+  nameEl.value = c.name ?? "";
   numeratorEl.value = String(c.numerator);
   denominatorEl.value = String(c.denominator);
   setChecked(keysEl, c.keys);
-  harmonicEl.checked = c.harmonic_minor;
   clefEl.value = c.clef;
   setChecked(rhythmEl, c.rhythm_values);
+  setChecked(restValuesEl, c.rest_values);
   restsEnabledEl.checked = c.rests.enabled;
   densityEl.value = String(Math.round(c.rests.density * 100));
   densityValueEl.textContent = densityEl.value + "%";
@@ -169,21 +185,18 @@ function applyConfig(c: GenerationConfig) {
 
 function readConfig(): GenerationConfig {
   return {
-    name: null,
+    name: nameEl.value.trim() || null,
     numerator: Number(numeratorEl.value) || 4,
     denominator: Number(denominatorEl.value) || 4,
     keys: checkedValues(keysEl),
     clef: clefEl.value,
-    measures: Number(measuresEl.value) || 8,
+    measures: Number(measuresEl.value) || 16,
     rhythm_values: checkedValues(rhythmEl),
+    rest_values: checkedValues(restValuesEl),
     syncopation: syncopationEl.checked,
     max_interval: maxIntervalEl.value === "" ? null : Number(maxIntervalEl.value),
-    rests: {
-      enabled: restsEnabledEl.checked,
-      density: Number(densityEl.value) / 100,
-    },
+    rests: { enabled: restsEnabledEl.checked, density: Number(densityEl.value) / 100 },
     polyphonic: polyphonicEl.checked,
-    harmonic_minor: harmonicEl.checked,
     tempo_bpm: Number(tempoEl.value) || 90,
     seed: null,
   };
@@ -194,7 +207,7 @@ async function generate() {
   const config = readConfig();
   if (config.keys.length === 0) return setStatus("Select at least one key.", true);
   if (config.rhythm_values.length === 0)
-    return setStatus("Select at least one rhythm value.", true);
+    return setStatus("Select at least one note value.", true);
 
   setStatus("Generating…");
   scoreLoaded = false;
@@ -212,9 +225,11 @@ async function generate() {
   }
 
   const xml = await res.text();
+  const scrollY = window.scrollY; // OSMD's cursor.show() can steal scroll; restore it
   await osmd.load(xml);
   osmd.render();
   osmd.cursor?.show();
+  requestAnimationFrame(() => window.scrollTo({ top: scrollY }));
 
   engine.load();
   engine.setBpm(config.tempo_bpm);
@@ -235,23 +250,13 @@ function refreshLibrary() {
   if (saved.length) {
     const group = document.createElement("optgroup");
     group.label = "Saved";
-    for (const s of saved) {
-      const opt = document.createElement("option");
-      opt.value = "saved:" + s.id;
-      opt.textContent = s.name;
-      group.appendChild(opt);
-    }
+    for (const s of saved) group.appendChild(new Option(s.name, "saved:" + s.id));
     configListEl.appendChild(group);
   }
   if (recent.length) {
     const group = document.createElement("optgroup");
     group.label = "Recent";
-    recent.forEach((c, i) => {
-      const opt = document.createElement("option");
-      opt.value = "recent:" + i;
-      opt.textContent = summarize(c);
-      group.appendChild(opt);
-    });
+    recent.forEach((c, i) => group.appendChild(new Option(summarize(c), "recent:" + i)));
     configListEl.appendChild(group);
   }
 }
@@ -268,10 +273,10 @@ function selectedConfig(): GenerationConfig | null {
 }
 
 // --- Wiring ------------------------------------------------------------------
-controlsEl.addEventListener("submit", (e) => {
-  e.preventDefault();
+generateBtn.addEventListener("click", () => {
   generate().catch((err) => setStatus(`Error: ${err.message}`, true));
 });
+controlsEl.addEventListener("submit", (e) => e.preventDefault());
 
 densityEl.addEventListener("input", () => {
   densityValueEl.textContent = densityEl.value + "%";
@@ -287,19 +292,19 @@ tempoEl.addEventListener("input", () => {
 
 loadBtn.addEventListener("click", () => {
   const config = selectedConfig();
-  if (config) {
-    applyConfig(config);
-    generate().catch((err) => setStatus(`Error: ${err.message}`, true));
-  }
+  if (!config) return;
+  applyConfig(config);
+  generate().catch((err) => setStatus(`Error: ${err.message}`, true));
 });
 
 saveBtn.addEventListener("click", () => {
-  const name = prompt("Save this configuration as:");
-  if (!name) return;
-  store.save(name.trim(), readConfig());
+  const name = (nameEl.value.trim() || prompt("Name this configuration:")?.trim()) ?? "";
+  if (!name) return setStatus("Enter a name to save.", true);
+  nameEl.value = name;
+  store.save(name, readConfig());
   refreshLibrary();
-  configListEl.value = "saved:" + name.trim();
-  setStatus(`Saved "${name.trim()}".`);
+  configListEl.value = "saved:" + name;
+  setStatus(`Saved "${name}".`);
 });
 
 deleteBtn.addEventListener("click", () => {

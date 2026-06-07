@@ -11,73 +11,80 @@
       <p class="tagline">Generate and play sight-reading exercises.</p>
     </header>
 
-    <div id="presets" class="presets"></div>
-
-    <form id="controls">
-      <fieldset>
-        <legend>Meter</legend>
-        <label>Beats <input id="numerator" type="number" min="1" max="32" value="4" /></label>
-        <label>Per
-          <select id="denominator">
-            <option value="1">whole</option>
-            <option value="2">half</option>
-            <option value="4" selected>quarter</option>
-            <option value="8">eighth</option>
-            <option value="16">sixteenth</option>
-          </select>
-        </label>
-      </fieldset>
-
-      <fieldset>
-        <legend>Keys</legend>
-        <div id="keys" class="checkgroup"></div>
-        <label class="checkbox"><input id="harmonic_minor" type="checkbox" /> Harmonic minor</label>
-      </fieldset>
-
-      <fieldset>
-        <legend>Clef</legend>
-        <select id="clef"></select>
-      </fieldset>
-
-      <fieldset class="wide">
-        <legend>Rhythm values</legend>
-        <div id="rhythm" class="checkgroup"></div>
-      </fieldset>
-
-      <fieldset>
-        <legend>Rests</legend>
-        <label class="checkbox"><input id="rests_enabled" type="checkbox" /> Enable</label>
-        <label>Density <span id="density_value">0%</span>
-          <input id="density" type="range" min="0" max="100" value="0" />
-        </label>
-      </fieldset>
-
-      <fieldset>
-        <legend>Melody</legend>
-        <label>Max leap <select id="max_interval"></select></label>
-        <label class="checkbox"><input id="syncopation" type="checkbox" /> Syncopation</label>
-        <label class="checkbox"><input id="polyphonic" type="checkbox" /> Polyphonic</label>
-      </fieldset>
-
-      <fieldset>
-        <legend>Length</legend>
-        <label>Measures <input id="measures" type="number" min="1" max="64" value="8" /></label>
-      </fieldset>
-
-      <button type="submit" id="generate">Generate</button>
-    </form>
+    <section id="topbar">
+      <div id="presets" class="presets"></div>
+      <label class="namefield">Name
+        <input id="config_name" type="text" placeholder="Custom" />
+      </label>
+      <button id="generate" type="button">Generate</button>
+    </section>
 
     <section id="library">
       <label>Saved &amp; recent
         <select id="config_list"></select>
       </label>
       <button id="load" type="button">Load</button>
-      <button id="save" type="button">Save…</button>
+      <button id="save" type="button">Save</button>
       <button id="delete" type="button">Delete</button>
       <span class="spacer"></span>
       <button id="export" type="button">Export</button>
       <label class="filebtn">Import<input id="import" type="file" accept="application/json" /></label>
     </section>
+
+    <details id="customize">
+      <summary>Customize</summary>
+      <form id="controls">
+        <fieldset>
+          <legend>Meter</legend>
+          <label>Beats <input id="numerator" type="number" min="1" max="32" value="4" /></label>
+          <label>Per
+            <select id="denominator">
+              <option value="1">whole</option>
+              <option value="2">half</option>
+              <option value="4" selected>quarter</option>
+              <option value="8">eighth</option>
+              <option value="16">sixteenth</option>
+            </select>
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Clef</legend>
+          <select id="clef"></select>
+        </fieldset>
+
+        <fieldset>
+          <legend>Length</legend>
+          <label>Measures <input id="measures" type="number" min="1" max="64" value="16" /></label>
+        </fieldset>
+
+        <fieldset class="wide">
+          <legend>Keys</legend>
+          <div id="keys" class="keygroups"></div>
+        </fieldset>
+
+        <fieldset class="wide">
+          <legend>Note values</legend>
+          <div id="rhythm" class="checkgroup"></div>
+        </fieldset>
+
+        <fieldset class="wide">
+          <legend>Rests</legend>
+          <label class="checkbox"><input id="rests_enabled" type="checkbox" /> Enable rests</label>
+          <label>Density <span id="density_value">0%</span>
+            <input id="density" type="range" min="0" max="100" value="0" />
+          </label>
+          <div id="rest_values" class="checkgroup"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Melody</legend>
+          <label>Max leap <select id="max_interval"></select></label>
+          <label class="checkbox"><input id="syncopation" type="checkbox" /> Syncopation</label>
+          <label class="checkbox"><input id="polyphonic" type="checkbox" /> Polyphonic</label>
+        </fieldset>
+      </form>
+    </details>
 
     <section id="player">
       <button id="play" type="button" disabled>▶ Play</button>

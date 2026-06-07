@@ -42,7 +42,7 @@ class GenerationParams:
     difficulty: str = "EASY"
     key: str = "C"
     clef: Clef = Clef.TREBLE
-    measures: int = 8
+    measures: int = 16
     polyphonic: bool = False
     tempo_bpm: int = 90
     seed: int | None = None
@@ -68,11 +68,13 @@ def _softmax(weights: tuple[float, ...]) -> list[float]:
 _DEGREE_PROBS = _softmax(CHORD_TONE_WEIGHTS)
 
 
-def _build_scale(tonic: str, is_minor: bool, harmonic: bool) -> ConcreteScale:
-    """Build the music21 scale for a key. Minor keys use natural or harmonic minor."""
-    if not is_minor:
+def _build_scale(tonic: str, quality: str) -> ConcreteScale:
+    """Build the music21 scale for a key quality (major / minor / harmonic)."""
+    if quality == "major":
         return MajorScale(tonic)
-    return HarmonicMinorScale(tonic) if harmonic else MinorScale(tonic)
+    if quality == "harmonic":
+        return HarmonicMinorScale(tonic)
+    return MinorScale(tonic)
 
 
 class _PitchPool:
@@ -113,16 +115,18 @@ def generate_score(config: GenerationConfig | GenerationParams) -> stream.Score:
 
     rng = random.Random(config.seed)
     key = rng.choice(config.keys)
-    tonic, is_minor = parse_key(key)
-    pool = _PitchPool(_build_scale(tonic, is_minor, config.harmonic_minor), config.clef)
-    values = resolve(config.rhythm_values)
+    tonic, quality = parse_key(key)
+    pool = _PitchPool(_build_scale(tonic, quality), config.clef)
+    fill_values = resolve(config.fill_values)
+    note_ids = set(config.rhythm_values)
+    rest_ids = set(config.rest_values) if config.rests.enabled else set()
     measure_len = config.measure_quarter_length
 
     part = stream.Part()
     part.append(
         m21clef.TrebleClef() if config.clef is Clef.TREBLE else m21clef.BassClef()
     )
-    part.append(m21key.Key(tonic, "minor" if is_minor else "major"))
+    part.append(m21key.Key(tonic, "minor" if quality != "major" else "major"))
     part.append(meter.TimeSignature(config.time_signature))
     part.append(tempo.MetronomeMark(number=config.tempo_bpm))
 
@@ -130,8 +134,10 @@ def generate_score(config: GenerationConfig | GenerationParams) -> stream.Score:
     for _ in range(config.measures):
         measure = stream.Measure()
         chord_root = rng.randint(1, 7)
-        for token in _fill_bar(measure_len, values, config, rng):
-            prev = _emit_token(measure, token, config, pool, chord_root, prev, rng)
+        for token in _fill_bar(measure_len, fill_values, config, rng):
+            prev = _emit_token(
+                measure, token, config, note_ids, rest_ids, pool, chord_root, prev, rng
+            )
         part.append(measure)
 
     _finalize(part)
@@ -195,15 +201,23 @@ def _emit_token(
     measure: stream.Measure,
     token: RhythmValue,
     config: GenerationConfig,
+    note_ids: set[str],
+    rest_ids: set[str],
     pool: _PitchPool,
     chord_root: int,
     prev: Pitch | None,
     rng: random.Random,
 ) -> Pitch | None:
-    """Append one rhythm token (1 note, or a tuplet group) to the measure."""
+    """Append one rhythm token (1 note, or a tuplet group) to the measure.
+
+    A slot becomes a rest when its duration is rest-only, or when it is valid as
+    both and the rest coin-flip (density) lands; otherwise it's a pitched note.
+    """
+    can_note = token.id in note_ids
+    can_rest = token.id in rest_ids
     for _ in range(token.group_size):
         ql = token.quarter_length
-        if config.rests.enabled and rng.random() < config.rests.density:
+        if can_rest and (not can_note or rng.random() < config.rests.density):
             measure.append(note.Rest(quarterLength=ql))
             continue
         pitch = _choose_pitch(pool, chord_root, prev, config.max_interval, rng)

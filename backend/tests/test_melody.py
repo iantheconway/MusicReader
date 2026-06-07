@@ -15,15 +15,23 @@ def test_minor_key_signature_is_minor():
 
 
 def test_harmonic_minor_scale_raises_seventh():
-    pitches = _build_scale("A", is_minor=True, harmonic=True).getPitches("A3", "A4")
+    pitches = _build_scale("A", "harmonic").getPitches("A3", "A4")
     names = [p.name for p in pitches]
     assert "G#" in names
     assert "G" not in names  # the natural 7th is replaced
 
 
 def test_natural_minor_scale_keeps_seventh():
-    names = [p.name for p in _build_scale("A", True, False).getPitches("A3", "A4")]
+    names = [p.name for p in _build_scale("A", "minor").getPitches("A3", "A4")]
     assert "G" in names and "G#" not in names
+
+
+def test_harmonic_minor_key_id_generates_accidental():
+    xml = score_to_musicxml(
+        generate_score(GenerationConfig(keys=["Ahm"], rhythm_values=["quarter"],
+                                        measures=16, seed=2))
+    )
+    assert "<mode>minor</mode>" in xml
 
 
 def _mean_leap(max_interval: int | None) -> float:

@@ -9,7 +9,9 @@ client = TestClient(app)
 
 def test_options_lists_keys_rhythms_intervals():
     data = client.get("/api/options").json()
-    assert {"id": "Am", "label": "A minor"} in data["keys"]
+    key_ids = {k["id"] for k in data["keys"]}
+    assert {"C", "Am", "Ahm", "F#hm"} <= key_ids  # major, minor, harmonic minor
+    assert {k["group"] for k in data["keys"]} == {"Major", "Minor", "Harmonic minor"}
     assert any(r["id"] == "eighth-triplet" for r in data["rhythmValues"])
     assert any(i["semitones"] == 12 for i in data["intervals"])
 

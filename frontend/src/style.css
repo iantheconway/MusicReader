@@ -66,13 +66,69 @@ legend {
   max-width: 22rem;
 }
 
+#topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 1rem;
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
 .presets {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 1rem;
 }
 .presets button {
   background: #4a5568;
+}
+.namefield {
+  flex: 1;
+  min-width: 10rem;
+}
+.namefield input {
+  width: 100%;
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+details#customize {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+details#customize > summary {
+  cursor: pointer;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  user-select: none;
+}
+details#customize[open] > summary {
+  border-bottom: 1px solid var(--border);
+}
+details#customize > form#controls {
+  border: none;
+  margin: 0;
+}
+
+.keygroups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+.keygroup-title {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 0.25rem;
+}
+.keygroup .checkgroup {
+  max-width: 14rem;
 }
 
 section#library .spacer {

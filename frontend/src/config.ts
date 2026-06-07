@@ -14,11 +14,11 @@ export interface GenerationConfig {
   clef: string;
   measures: number;
   rhythm_values: string[];
+  rest_values: string[];
   syncopation: boolean;
   max_interval: number | null;
   rests: RestConfig;
   polyphonic: boolean;
-  harmonic_minor: boolean;
   tempo_bpm: number;
   seed: number | null;
 }
@@ -29,13 +29,13 @@ export const DEFAULT_CONFIG: GenerationConfig = {
   denominator: 4,
   keys: ["C"],
   clef: "treble",
-  measures: 8,
+  measures: 16,
   rhythm_values: ["whole", "half", "quarter"],
+  rest_values: ["whole", "half", "quarter"],
   syncopation: false,
   max_interval: null,
   rests: { enabled: false, density: 0 },
   polyphonic: false,
-  harmonic_minor: false,
   tempo_bpm: 90,
   seed: null,
 };

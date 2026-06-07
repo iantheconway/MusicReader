@@ -11,13 +11,12 @@ from pydantic import BaseModel, Field
 from .generator import GenerationParams, generate_score
 from .model import (
     INTERVAL_OPTIONS,
+    KEY_DEFS,
     PRESETS,
-    SUPPORTED_KEYS,
     Clef,
     ConfigError,
     GenerationConfig,
     RestConfig,
-    key_label,
 )
 from .musicxml import score_to_musicxml
 from .rhythm import CATALOG
@@ -48,15 +47,17 @@ class ConfigBody(BaseModel):
     denominator: int = 4
     keys: list[str] = Field(default_factory=lambda: ["C"])
     clef: Clef = Clef.TREBLE
-    measures: int = 8
+    measures: int = 16
     rhythm_values: list[str] = Field(
+        default_factory=lambda: ["whole", "half", "quarter"]
+    )
+    rest_values: list[str] = Field(
         default_factory=lambda: ["whole", "half", "quarter"]
     )
     syncopation: bool = False
     max_interval: int | None = None
     rests: RestBody = Field(default_factory=RestBody)
     polyphonic: bool = False
-    harmonic_minor: bool = False
     tempo_bpm: int = 90
     seed: int | None = None
 
@@ -69,11 +70,11 @@ class ConfigBody(BaseModel):
             clef=self.clef,
             measures=self.measures,
             rhythm_values=self.rhythm_values,
+            rest_values=self.rest_values,
             syncopation=self.syncopation,
             max_interval=self.max_interval,
             rests=RestConfig(enabled=self.rests.enabled, density=self.rests.density),
             polyphonic=self.polyphonic,
-            harmonic_minor=self.harmonic_minor,
             tempo_bpm=self.tempo_bpm,
             seed=self.seed,
         )
@@ -92,7 +93,7 @@ def options() -> dict:
     """Enumerate the choices the frontend can offer."""
     return {
         "difficulties": list(PRESETS.keys()),
-        "keys": [{"id": k, "label": key_label(k)} for k in SUPPORTED_KEYS],
+        "keys": [{"id": k.id, "label": k.label, "group": k.group} for k in KEY_DEFS],
         "clefs": [c.value for c in Clef],
         "rhythmValues": [{"id": v.id, "label": v.label} for v in CATALOG.values()],
         "intervals": [{"semitones": s, "label": label} for s, label in INTERVAL_OPTIONS],
@@ -116,7 +117,7 @@ def generate(
     difficulty: str = Query("EASY"),
     key: str = Query("C"),
     clef: Clef = Query(Clef.TREBLE),
-    measures: int = Query(8, ge=1, le=64),
+    measures: int = Query(16, ge=1, le=64),
     polyphonic: bool = Query(False),
     tempo: int = Query(90, ge=20, le=300),
     seed: int | None = Query(None),

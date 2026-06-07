@@ -59,6 +59,21 @@ def test_rests_can_be_forced():
     assert "<rest" in xml
 
 
+def test_rest_values_independent_of_note_values():
+    # Notes are halves; rests are quarters. Every quarter slot must be a rest
+    # (quarter isn't a note value), every half slot a pitched note.
+    cfg = GenerationConfig(
+        rhythm_values=["half"],
+        rest_values=["quarter"],
+        rests=RestConfig(enabled=True, density=1.0),
+        measures=4,
+        seed=8,
+    )
+    xml = score_to_musicxml(generate_score(cfg))
+    assert "<rest" in xml  # quarter rests
+    assert "<step>" in xml  # half notes are pitched
+
+
 def test_no_rests_when_disabled():
     cfg = GenerationConfig(
         rhythm_values=["quarter"],
