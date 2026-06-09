@@ -30,6 +30,8 @@ const densityValueEl = $<HTMLSpanElement>("density_value");
 const maxIntervalEl = $<HTMLSelectElement>("max_interval");
 const syncopationEl = $<HTMLInputElement>("syncopation");
 const polyphonicEl = $<HTMLInputElement>("polyphonic");
+const minPitchEl = $<HTMLSelectElement>("min_pitch");
+const maxPitchEl = $<HTMLSelectElement>("max_pitch");
 const measuresEl = $<HTMLInputElement>("measures");
 const controlsEl = $<HTMLFormElement>("controls");
 
@@ -39,6 +41,9 @@ const pauseBtn = $<HTMLButtonElement>("pause");
 const stopBtn = $<HTMLButtonElement>("stop");
 const tempoEl = $<HTMLInputElement>("tempo");
 const tempoValueEl = $<HTMLSpanElement>("tempo-value");
+const instrumentEl = $<HTMLSelectElement>("instrument");
+const metronomeEl = $<HTMLInputElement>("metronome");
+const countInEl = $<HTMLInputElement>("count_in");
 const statusEl = $<HTMLParagraphElement>("status");
 
 interface Options {
@@ -94,6 +99,31 @@ function checkbox(value: string, label: string): HTMLLabelElement {
   return wrap;
 }
 
+const CLEF_RANGES: Record<string, [string, number][]> = (() => {
+  const FLAT_NAMES = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+  // Treble: E3 (midi 52) to D5 (midi 74); Bass: E2 (midi 40) to D4 (midi 62)
+  function range(lowMidi: number, highMidi: number): [string, number][] {
+    const result: [string, number][] = [];
+    for (let m = lowMidi; m <= highMidi; m++) {
+      result.push([FLAT_NAMES[m % 12] + Math.floor(m / 12 - 1), m]);
+    }
+    return result;
+  }
+  return { treble: range(52, 74), bass: range(40, 62) };
+})();
+
+function buildPitchDropdowns(clef: string) {
+  const pitches = CLEF_RANGES[clef] ?? CLEF_RANGES["treble"];
+  const validLabels = new Set(pitches.map(([label]) => label));
+  for (const el of [minPitchEl, maxPitchEl]) {
+    const current = el.value;
+    el.innerHTML = "";
+    el.add(new Option("Any", ""));
+    for (const [label] of pitches) el.add(new Option(label, label));
+    el.value = validLabels.has(current) ? current : "";
+  }
+}
+
 function buildKeyGroups(container: HTMLElement, keys: Options["keys"]) {
   container.innerHTML = "";
   const groups = new Map<string, typeof keys>();
@@ -145,6 +175,7 @@ async function loadOptions() {
     const opt = new Option(c.charAt(0).toUpperCase() + c.slice(1), c);
     clefEl.add(opt);
   }
+  buildPitchDropdowns(clefEl.value);
 
   maxIntervalEl.innerHTML = "";
   maxIntervalEl.add(new Option("Any", ""));
@@ -181,6 +212,9 @@ function applyConfig(c: GenerationConfig) {
   measuresEl.value = String(c.measures);
   tempoEl.value = String(c.tempo_bpm);
   tempoValueEl.textContent = tempoEl.value;
+  buildPitchDropdowns(c.clef);
+  minPitchEl.value = c.min_pitch ?? "";
+  maxPitchEl.value = c.max_pitch ?? "";
 }
 
 function readConfig(): GenerationConfig {
@@ -199,6 +233,8 @@ function readConfig(): GenerationConfig {
     polyphonic: polyphonicEl.checked,
     tempo_bpm: Number(tempoEl.value) || 90,
     seed: null,
+    min_pitch: minPitchEl.value || null,
+    max_pitch: maxPitchEl.value || null,
   };
 }
 
@@ -233,6 +269,7 @@ async function generate() {
 
   engine.load();
   engine.setBpm(config.tempo_bpm);
+  engine.setMeasureLength(config.numerator, config.denominator);
   scoreLoaded = true;
   updateButtons();
   setStatus("Ready. Press play.");
@@ -282,6 +319,8 @@ densityEl.addEventListener("input", () => {
   densityValueEl.textContent = densityEl.value + "%";
 });
 
+clefEl.addEventListener("change", () => buildPitchDropdowns(clefEl.value));
+
 playBtn.addEventListener("click", () => engine.play());
 pauseBtn.addEventListener("click", () => engine.pause());
 stopBtn.addEventListener("click", () => engine.stop());
@@ -289,6 +328,12 @@ tempoEl.addEventListener("input", () => {
   tempoValueEl.textContent = tempoEl.value;
   if (scoreLoaded) engine.setBpm(Number(tempoEl.value));
 });
+
+instrumentEl.addEventListener("change", () => {
+  engine.setInstrument(instrumentEl.value as "piano" | "guitar" | "violin");
+});
+metronomeEl.addEventListener("change", () => { engine.metronome = metronomeEl.checked; });
+countInEl.addEventListener("change", () => { engine.countIn = countInEl.checked; });
 
 loadBtn.addEventListener("click", () => {
   const config = selectedConfig();
@@ -341,6 +386,7 @@ importEl.addEventListener("change", async () => {
 loadOptions()
   .then(() => {
     refreshLibrary();
+    engine.setInstrument(instrumentEl.value as "piano" | "guitar" | "violin");
     applyConfig(presets["EASY"] ?? DEFAULT_CONFIG);
     return generate();
   })

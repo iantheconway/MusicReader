@@ -60,6 +60,8 @@ class ConfigBody(BaseModel):
     polyphonic: bool = False
     tempo_bpm: int = 90
     seed: int | None = None
+    min_pitch: str | None = None
+    max_pitch: str | None = None
 
     def to_config(self) -> GenerationConfig:
         return GenerationConfig(
@@ -77,6 +79,8 @@ class ConfigBody(BaseModel):
             polyphonic=self.polyphonic,
             tempo_bpm=self.tempo_bpm,
             seed=self.seed,
+            min_pitch=self.min_pitch,
+            max_pitch=self.max_pitch,
         )
 
 

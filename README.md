@@ -21,12 +21,15 @@ frontend/  TypeScript + Vite — OpenSheetMusicDisplay (render) + Tone.js (playb
   (incl. compound/odd meters), keys (all 12 tonics in major / natural-minor /
   harmonic-minor), clef (treble/bass), note values (incl. dotted + triplets),
   rests with their own selectable durations + density, max melodic leap,
-  syncopation, polyphony, measures, and tempo. Easy/Medium/Hard are presets that
+  pitch range (min/max), syncopation, polyphony, measures, and tempo.
+  Easy/Medium/Hard are presets that
   fill the config; all customization lives behind a collapsible panel. See [generator.py](backend/musicreader/generator.py),
   [rhythm.py](backend/musicreader/rhythm.py), and [model.py](backend/musicreader/model.py).
 - The backend exports the piece as **MusicXML**; the frontend renders it with
   OSMD and plays it with a small Tone.js engine that schedules notes on the
   Transport (in ticks, so tempo can change live) and follows OSMD's cursor.
+  Playback offers a selectable instrument (piano / guitar / violin), an optional
+  metronome click, and a one-bar count-in.
   See [frontend/src/player.ts](frontend/src/player.ts).
 - **Configs persist** in the browser (localStorage): named saves + recent
   history, with JSON export/import for backup/sharing.
@@ -34,9 +37,15 @@ frontend/  TypeScript + Vite — OpenSheetMusicDisplay (render) + Tone.js (playb
 
 ## Running it
 
-You need **Python 3.12+** and **Node 18+**.
+You need **Python 3.12+** and **Node 18+**. The app is two servers that run
+**at the same time** — the FastAPI backend on port 8000 and the Vite dev server
+on 5173 (which proxies `/api` to the backend). Use two terminals, or the bundled
+VS Code task (see below).
 
 ### Backend
+
+First-time setup, then run (the `--reload` flag picks up code changes — don't
+skip it during development):
 
 ```bash
 cd backend
@@ -63,6 +72,20 @@ npm run dev
 
 Then open the URL Vite prints (default http://localhost:5173). The dev server
 proxies `/api` to the backend on port 8000, so run both.
+
+### In VS Code
+
+A workspace task is included that launches **both** servers in parallel (split
+terminals): open the Command Palette → **Tasks: Run Task** → **dev (backend +
+frontend)** (it's the default build task, so `Cmd/Ctrl+Shift+B` runs it too).
+Then open http://localhost:5173. Stop them with the trash-can icon on each
+terminal. The task assumes the backend venv exists (run the one-time setup
+above first).
+
+> Note: the frontend's `.ts` files are the source of truth. Never commit
+> compiled `.js` next to them in `frontend/src/` — Vite resolves `.js` before
+> `.ts`, so a stale sibling would shadow your source. `tsconfig.json` sets
+> `"noEmit": true` so `tsc` only type-checks (`vite build` does the compiling).
 
 ### Tests
 

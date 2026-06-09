@@ -3,6 +3,8 @@ import type { Cursor, OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 
 export type PlayerState = "STOPPED" | "PLAYING" | "PAUSED";
 
+type InstrumentName = "piano" | "guitar" | "violin";
+
 interface TimedNote {
   freq: number; // Hz
   durQuarters: number;
@@ -24,14 +26,24 @@ interface Step {
  */
 export class Player {
   private synth: Tone.PolySynth;
+  private clickSynth: Tone.Synth;
   private steps: Step[] = [];
   private visualIndex = 0;
+  private measureQuarters = 4;
+  private beatQuarters = 1;
+
   state: PlayerState = "STOPPED";
+  metronome = false;
+  countIn = false;
   onStateChange?: (state: PlayerState) => void;
 
   constructor(private osmd: OpenSheetMusicDisplay) {
-    this.synth = new Tone.PolySynth(Tone.Synth).toDestination();
-    this.synth.volume.value = -6;
+    this.synth = this._buildSynth("piano");
+    this.clickSynth = new Tone.Synth({
+      oscillator: { type: "triangle" },
+      envelope: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.05 },
+    }).toDestination();
+    this.clickSynth.volume.value = -10;
   }
 
   /** OSMD's cursor only exists after the first render(); may be undefined. */
@@ -47,6 +59,21 @@ export class Player {
 
   setBpm(bpm: number): void {
     Tone.Transport.bpm.value = bpm;
+  }
+
+  setMeasureLength(numerator: number, denominator: number): void {
+    this.measureQuarters = (numerator * 4) / denominator;
+    // Compound meters (x/8 with numerator divisible by 3) beat in dotted quarters
+    if (denominator === 8 && numerator % 3 === 0) {
+      this.beatQuarters = 1.5;
+    } else {
+      this.beatQuarters = 4 / denominator;
+    }
+  }
+
+  setInstrument(name: InstrumentName): void {
+    this.synth.dispose();
+    this.synth = this._buildSynth(name);
   }
 
   async play(): Promise<void> {
@@ -81,8 +108,43 @@ export class Player {
   private scheduleAll(): void {
     Tone.Transport.cancel(0);
     const ppq = Tone.Transport.PPQ;
+    const countInTicks = this.countIn ? Math.round(this.measureQuarters * ppq) : 0;
+
+    // Schedule count-in clicks
+    if (this.countIn) {
+      let pos = 0;
+      while (pos < countInTicks) {
+        const t = pos + "i";
+        const isDownbeat = pos === 0;
+        Tone.Transport.schedule((time) => {
+          this.clickSynth.triggerAttackRelease(isDownbeat ? "C6" : "C5", "32n", time);
+        }, t);
+        pos += Math.round(this.beatQuarters * ppq);
+      }
+    }
+
+    // Schedule metronome clicks throughout the score
+    if (this.metronome && this.steps.length > 0) {
+      const last = this.steps[this.steps.length - 1];
+      const endQ =
+        last.posQuarters + Math.max(1, ...last.notes.map((n) => n.durQuarters));
+      const endTicks = countInTicks + Math.round(endQ * ppq);
+      let pos = countInTicks;
+      let beatIndex = 0;
+      while (pos < endTicks) {
+        const t = pos + "i";
+        const isDownbeat = beatIndex % Math.round(this.measureQuarters / this.beatQuarters) === 0;
+        Tone.Transport.schedule((time) => {
+          this.clickSynth.triggerAttackRelease(isDownbeat ? "C6" : "C5", "32n", time);
+        }, t);
+        pos += Math.round(this.beatQuarters * ppq);
+        beatIndex++;
+      }
+    }
+
+    // Schedule score notes (offset by count-in)
     this.steps.forEach((step, i) => {
-      const at = Math.round(step.posQuarters * ppq) + "i";
+      const at = Math.round(step.posQuarters * ppq) + countInTicks + "i";
       Tone.Transport.schedule((time) => {
         for (const n of step.notes) {
           const dur = Math.max(1, Math.round(n.durQuarters * ppq)) + "i";
@@ -98,7 +160,7 @@ export class Player {
         last.posQuarters + Math.max(1, ...last.notes.map((n) => n.durQuarters));
       Tone.Transport.schedule((time) => {
         Tone.Draw.schedule(() => this.stop(), time);
-      }, Math.round(endQ * ppq) + "i");
+      }, Math.round(endQ * ppq) + countInTicks + "i");
     }
   }
 
@@ -146,5 +208,29 @@ export class Player {
   private setState(state: PlayerState): void {
     this.state = state;
     this.onStateChange?.(state);
+  }
+
+  private _buildSynth(name: InstrumentName): Tone.PolySynth {
+    let synth: Tone.PolySynth;
+    if (name === "violin") {
+      synth = new Tone.PolySynth(Tone.FMSynth, {
+        envelope: { attack: 0.18, decay: 0.1, sustain: 0.8, release: 0.3 },
+        modulationEnvelope: { attack: 0.2, decay: 0.1, sustain: 0.5, release: 0.3 },
+      });
+    } else if (name === "guitar") {
+      synth = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: "triangle" },
+        envelope: { attack: 0.001, decay: 0.25, sustain: 0, release: 0.3 },
+      });
+    } else {
+      // piano (default)
+      synth = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: "sine" },
+        envelope: { attack: 0.001, decay: 0.4, sustain: 0.3, release: 1.2 },
+      });
+    }
+    synth.toDestination();
+    synth.volume.value = -6;
+    return synth;
   }
 }

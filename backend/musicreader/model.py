@@ -8,6 +8,7 @@ just presets that fill it in; the user can tweak any field afterward.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field, replace
 from enum import Enum
 from fractions import Fraction
@@ -133,6 +134,8 @@ class GenerationConfig:
     polyphonic: bool = False
     tempo_bpm: int = 90
     seed: int | None = None
+    min_pitch: str | None = None  # scientific pitch cap, e.g. "G3"
+    max_pitch: str | None = None  # scientific pitch cap, e.g. "E5"
 
     @property
     def fill_values(self) -> list[str]:
@@ -198,6 +201,10 @@ class GenerationConfig:
                 f"The selected note values can't exactly fill a "
                 f"{self.time_signature} measure. Add a shorter value."
             )
+        _PITCH_RE = re.compile(r"^[A-G][b#]?\d$")
+        for field_name, val in (("min_pitch", self.min_pitch), ("max_pitch", self.max_pitch)):
+            if val is not None and not _PITCH_RE.match(val):
+                raise ConfigError(f"Invalid {field_name}: '{val}' — expected e.g. 'C4' or 'Gb3'.")
 
 
 PRESETS: dict[str, GenerationConfig] = {

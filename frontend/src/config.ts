@@ -21,6 +21,8 @@ export interface GenerationConfig {
   polyphonic: boolean;
   tempo_bpm: number;
   seed: number | null;
+  min_pitch: string | null;
+  max_pitch: string | null;
 }
 
 export const DEFAULT_CONFIG: GenerationConfig = {
@@ -38,6 +40,8 @@ export const DEFAULT_CONFIG: GenerationConfig = {
   polyphonic: false,
   tempo_bpm: 90,
   seed: null,
+  min_pitch: null,
+  max_pitch: null,
 };
 
 /** Short human label for dropdowns / history. */

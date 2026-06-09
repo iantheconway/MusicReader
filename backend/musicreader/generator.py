@@ -80,10 +80,18 @@ def _build_scale(tonic: str, quality: str) -> ConcreteScale:
 class _PitchPool:
     """Diatonic pitches of a scale within a clef's range, indexed by scale degree."""
 
-    def __init__(self, scale: ConcreteScale, clef: Clef):
+    def __init__(self, scale: ConcreteScale, clef: Clef, config: GenerationConfig):
         low, high = CLEF_RANGE[clef]
         self.scale = scale
-        pitches = self.scale.getPitches(low, high)
+        pitches = list(self.scale.getPitches(low, high))
+        min_midi = Pitch(config.min_pitch).midi if config.min_pitch else None
+        max_midi = Pitch(config.max_pitch).midi if config.max_pitch else None
+        if min_midi is not None or max_midi is not None:
+            pitches = [
+                p for p in pitches
+                if (min_midi is None or p.midi >= min_midi)
+                and (max_midi is None or p.midi <= max_midi)
+            ]
         self.by_degree: dict[int, list[Pitch]] = {}
         for p in pitches:
             degree = self.scale.getScaleDegreeFromPitch(p)
@@ -116,23 +124,24 @@ def generate_score(config: GenerationConfig | GenerationParams) -> stream.Score:
     rng = random.Random(config.seed)
     key = rng.choice(config.keys)
     tonic, quality = parse_key(key)
-    pool = _PitchPool(_build_scale(tonic, quality), config.clef)
+    pool = _PitchPool(_build_scale(tonic, quality), config.clef, config)
     fill_values = resolve(config.fill_values)
     note_ids = set(config.rhythm_values)
     rest_ids = set(config.rest_values) if config.rests.enabled else set()
     measure_len = config.measure_quarter_length
 
     part = stream.Part()
-    part.append(
-        m21clef.TrebleClef() if config.clef is Clef.TREBLE else m21clef.BassClef()
-    )
-    part.append(m21key.Key(tonic, "minor" if quality != "major" else "major"))
-    part.append(meter.TimeSignature(config.time_signature))
-    part.append(tempo.MetronomeMark(number=config.tempo_bpm))
 
     prev: Pitch | None = None
-    for _ in range(config.measures):
+    for i in range(config.measures):
         measure = stream.Measure()
+        if i == 0:
+            measure.append(
+                m21clef.TrebleClef() if config.clef is Clef.TREBLE else m21clef.BassClef()
+            )
+            measure.append(m21key.Key(tonic, "minor" if quality != "major" else "major"))
+            measure.append(meter.TimeSignature(config.time_signature))
+            measure.append(tempo.MetronomeMark(number=config.tempo_bpm))
         chord_root = rng.randint(1, 7)
         for token in _fill_bar(measure_len, fill_values, config, rng):
             prev = _emit_token(

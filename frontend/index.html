@@ -82,6 +82,8 @@
           <label>Max leap <select id="max_interval"></select></label>
           <label class="checkbox"><input id="syncopation" type="checkbox" /> Syncopation</label>
           <label class="checkbox"><input id="polyphonic" type="checkbox" /> Polyphonic</label>
+          <label>Min pitch <select id="min_pitch"></select></label>
+          <label>Max pitch <select id="max_pitch"></select></label>
         </fieldset>
       </form>
     </details>
@@ -93,6 +95,15 @@
       <label class="tempo">Tempo: <span id="tempo-value">90</span> bpm
         <input id="tempo" type="range" min="30" max="240" value="90" />
       </label>
+      <label>Instrument
+        <select id="instrument">
+          <option value="piano" selected>Piano</option>
+          <option value="guitar">Guitar</option>
+          <option value="violin">Violin</option>
+        </select>
+      </label>
+      <label class="checkbox"><input id="metronome" type="checkbox" /> Metronome</label>
+      <label class="checkbox"><input id="count_in" type="checkbox" /> Count in</label>
     </section>
 
     <p id="status"></p>
